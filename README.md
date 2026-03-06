@@ -5,7 +5,7 @@ Builder's Tarot is a Next.js 14 MVP with custom suits/court cards, deterministic
 ## Stack
 
 - Next.js 14 (App Router) + TypeScript + Tailwind CSS
-- Prisma + SQLite
+- Prisma + PostgreSQL
 - NextAuth (credentials login)
 - Zod validation
 - Framer Motion (card reveal animations)
@@ -40,10 +40,10 @@ npm install
 cp .env.example .env
 ```
 
-3. Run migration and seed:
+3. Push schema and seed:
 
 ```bash
-npm run db:migrate -- --name init
+npm run db:migrate
 npm run db:seed
 ```
 
