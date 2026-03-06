@@ -143,37 +143,35 @@ const courtCards: SeedCard[] = [
 const cards = [...majorArcana, ...minorCards, ...courtCards];
 
 async function main() {
-  await prisma.spreadCard.deleteMany();
-  await prisma.journalEntryCard.deleteMany();
-  await prisma.favorite.deleteMany();
-  await prisma.dailyDraw.deleteMany();
-  await prisma.journalEntry.deleteMany();
-  await prisma.spreadSession.deleteMany();
-  await prisma.account.deleteMany();
-  await prisma.session.deleteMany();
-  await prisma.verificationToken.deleteMany();
-  await prisma.card.deleteMany();
-  await prisma.user.deleteMany();
+  const existingCardCount = await prisma.card.count();
+  if (existingCardCount === 0) {
+    await prisma.card.createMany({
+      data: cards.map((card) => ({
+        ...card,
+        keywords: JSON.stringify(card.keywords),
+        promptQuestions: JSON.stringify(card.promptQuestions),
+      })),
+    });
+    console.log(`Seeded ${cards.length} cards.`);
+  } else {
+    console.log(`Skipped card seeding; found ${existingCardCount} existing cards.`);
+  }
 
-  await prisma.card.createMany({
-    data: cards.map((card) => ({
-      ...card,
-      keywords: JSON.stringify(card.keywords),
-      promptQuestions: JSON.stringify(card.promptQuestions),
-    })),
-  });
-
-  const passwordHash = await hash("builder123", 10);
-
-  await prisma.user.create({
-    data: {
-      name: "Demo Builder",
-      email: "demo@builderstarot.local",
-      passwordHash,
-    },
-  });
-
-  console.log(`Seeded ${cards.length} cards and demo user.`);
+  const demoEmail = "demo@builderstarot.local";
+  const existingDemoUser = await prisma.user.findUnique({ where: { email: demoEmail } });
+  if (!existingDemoUser) {
+    const passwordHash = await hash("builder123", 10);
+    await prisma.user.create({
+      data: {
+        name: "Demo Builder",
+        email: demoEmail,
+        passwordHash,
+      },
+    });
+    console.log("Seeded demo user.");
+  } else {
+    console.log("Skipped demo user seeding; user already exists.");
+  }
 }
 
 main()
