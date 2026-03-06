@@ -1,0 +1,51 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 226 64% 8%;
+    --foreground: 38 28% 89%;
+  }
+
+  .dark {
+    --background: 226 64% 8%;
+    --foreground: 38 28% 89%;
+  }
+
+  * {
+    @apply border-slate-800;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+    background-image:
+      radial-gradient(circle at 14% 22%, rgba(25, 83, 140, 0.34), transparent 36%),
+      radial-gradient(circle at 84% 16%, rgba(128, 71, 30, 0.28), transparent 34%),
+      linear-gradient(180deg, rgba(6, 18, 39, 0.95) 0%, rgba(4, 13, 31, 1) 100%);
+    background-attachment: fixed;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    font-family: var(--font-heading), sans-serif;
+  }
+}
+
+@layer utilities {
+  .bg-background {
+    background-color: hsl(var(--background));
+  }
+
+  .text-foreground {
+    color: hsl(var(--foreground));
+  }
+
+  .font-body {
+    font-family: var(--font-body), sans-serif;
+  }
+}
