@@ -1,8 +1,8 @@
 "use client";
 
-import { useSession } from "next-auth/react";
 import { useEffect, useState } from "react";
 
+import { authClient } from "@/lib/auth-client";
 import { DrawnCard } from "@/components/cards/drawn-card";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -18,26 +18,50 @@ type DailyResponse = {
 };
 
 export default function DailyPage() {
-  const { data: session } = useSession();
+  const { data: sessionData } = authClient.useSession();
   const [daily, setDaily] = useState<DailyResponse | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   useEffect(() => {
     async function loadDaily() {
-      if (session?.user) {
+      setLoadError(null);
+
+      if (sessionData?.user) {
         const response = await fetch("/api/daily");
-        if (!response.ok) return;
+        if (!response.ok) {
+          setLoadError("Unable to load daily card right now.");
+          return;
+        }
         setDaily((await response.json()) as DailyResponse);
         return;
       }
 
       const dateKey = getLocalDateKey();
       const existing = guestStore.getDaily();
-      const cards = (await (await fetch("/api/cards")).json()) as CardDTO[];
+      const cardsResponse = await fetch("/api/cards");
+      if (!cardsResponse.ok) {
+        setLoadError("Unable to load card data right now.");
+        return;
+      }
+
+      let cards: CardDTO[];
+      try {
+        cards = (await cardsResponse.json()) as CardDTO[];
+      } catch (error) {
+        console.error("Failed to parse /api/cards response", error);
+        setLoadError("Unable to load card data right now.");
+        return;
+      }
 
       if (existing) {
         const card = cards.find((item) => item.id === existing.cardId);
         if (!card) return;
         setDaily({ dateKey, card, orientation: existing.orientation as OrientationType });
+        return;
+      }
+
+      if (!cards.length) {
+        setLoadError("No cards available.");
         return;
       }
 
@@ -50,12 +74,12 @@ export default function DailyPage() {
     }
 
     void loadDaily();
-  }, [session?.user]);
+  }, [sessionData?.user]);
 
   async function saveDailyToJournal() {
     if (!daily) return;
 
-    if (session?.user) {
+    if (sessionData?.user) {
       await fetch("/api/journal", {
         method: "POST",
         body: JSON.stringify({
@@ -103,7 +127,7 @@ export default function DailyPage() {
           </Card>
         </div>
       ) : (
-        <Card>Loading your daily card...</Card>
+        <Card>{loadError ?? "Loading your daily card..."}</Card>
       )}
     </div>
   );

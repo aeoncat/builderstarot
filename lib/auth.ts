@@ -1,65 +1,60 @@
-import { PrismaAdapter } from "@next-auth/prisma-adapter";
-import { compare } from "bcryptjs";
-import type { NextAuthOptions } from "next-auth";
-import CredentialsProvider from "next-auth/providers/credentials";
-import { z } from "zod";
+import { prismaAdapter } from "@better-auth/prisma-adapter";
+import { compare, hash } from "bcryptjs";
+import { betterAuth } from "better-auth";
 
 import { prisma } from "@/lib/prisma";
 
-const credentialsSchema = z.object({
-  email: z.string().email(),
-  password: z.string().min(6),
+const trustedOrigins = process.env.BETTER_AUTH_TRUSTED_ORIGINS
+  ? process.env.BETTER_AUTH_TRUSTED_ORIGINS.split(",").map((origin) => origin.trim()).filter(Boolean)
+  : undefined;
+const authBaseURL = process.env.BETTER_AUTH_URL ?? process.env.NEXTAUTH_URL;
+const authSecret = process.env.BETTER_AUTH_SECRET ?? process.env.NEXTAUTH_SECRET;
+
+export const auth = betterAuth({
+  appName: "Builder's Tarot",
+  baseURL: authBaseURL,
+  secret: authSecret,
+  database: prismaAdapter(prisma, {
+    provider: "postgresql",
+  }),
+  emailAndPassword: {
+    enabled: true,
+    minPasswordLength: 8,
+    autoSignIn: true,
+    password: {
+      hash: async (password) => hash(password, 12),
+      verify: async ({ hash: passwordHash, password }) => compare(password, passwordHash),
+    },
+  },
+  user: {
+    modelName: "user",
+    fields: {
+      emailVerified: "emailVerifiedBoolean",
+    },
+  },
+  session: {
+    modelName: "session",
+    fields: {
+      token: "sessionToken",
+      expiresAt: "expires",
+    },
+  },
+  account: {
+    modelName: "account",
+    fields: {
+      accountId: "providerAccountId",
+      providerId: "provider",
+      accessToken: "access_token",
+      refreshToken: "refresh_token",
+      idToken: "id_token",
+    },
+  },
+  verification: {
+    modelName: "verificationToken",
+    fields: {
+      value: "token",
+      expiresAt: "expires",
+    },
+  },
+  trustedOrigins,
 });
-
-export const authOptions: NextAuthOptions = {
-  adapter: PrismaAdapter(prisma),
-  session: { strategy: "jwt" },
-  pages: {
-    signIn: "/login",
-  },
-  providers: [
-    CredentialsProvider({
-      name: "Credentials",
-      credentials: {
-        email: { label: "Email", type: "email" },
-        password: { label: "Password", type: "password" },
-      },
-      async authorize(credentials) {
-        const parsed = credentialsSchema.safeParse(credentials);
-        if (!parsed.success) {
-          return null;
-        }
-
-        const user = await prisma.user.findUnique({ where: { email: parsed.data.email } });
-        if (!user?.passwordHash) {
-          return null;
-        }
-
-        const isValid = await compare(parsed.data.password, user.passwordHash);
-        if (!isValid) {
-          return null;
-        }
-
-        return {
-          id: user.id,
-          name: user.name,
-          email: user.email,
-        };
-      },
-    }),
-  ],
-  callbacks: {
-    async jwt({ token, user }) {
-      if (user) {
-        token.sub = user.id;
-      }
-      return token;
-    },
-    async session({ session, token }) {
-      if (session.user) {
-        session.user.id = token.sub ?? "";
-      }
-      return session;
-    },
-  },
-};

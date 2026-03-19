@@ -1,13 +1,7 @@
 "use client";
 
-import { SessionProvider } from "next-auth/react";
-
 import { ThemeProvider } from "@/components/providers/theme-provider";
 
 export function AppProviders({ children }: { children: React.ReactNode }) {
-  return (
-    <SessionProvider>
-      <ThemeProvider>{children}</ThemeProvider>
-    </SessionProvider>
-  );
+  return <ThemeProvider>{children}</ThemeProvider>;
 }

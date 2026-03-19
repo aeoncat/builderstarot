@@ -143,35 +143,90 @@ const courtCards: SeedCard[] = [
 const cards = [...majorArcana, ...minorCards, ...courtCards];
 
 async function main() {
-  const existingCardCount = await prisma.card.count();
-  if (existingCardCount === 0) {
+  const existingCards = await prisma.card.findMany({ select: { name: true } });
+  const existingNames = new Set(existingCards.map((card) => card.name));
+  const missingCards = cards.filter((card) => !existingNames.has(card.name));
+
+  if (missingCards.length > 0) {
     await prisma.card.createMany({
-      data: cards.map((card) => ({
+      data: missingCards.map((card) => ({
         ...card,
         keywords: JSON.stringify(card.keywords),
         promptQuestions: JSON.stringify(card.promptQuestions),
       })),
     });
-    console.log(`Seeded ${cards.length} cards.`);
+    console.log(`Seeded ${missingCards.length} missing card(s).`);
   } else {
-    console.log(`Skipped card seeding; found ${existingCardCount} existing cards.`);
+    console.log(`Skipped card seeding; found all ${cards.length} card definitions already present.`);
   }
 
   const demoEmail = "demo@builderstarot.local";
-  const existingDemoUser = await prisma.user.findUnique({ where: { email: demoEmail } });
-  if (!existingDemoUser) {
-    const passwordHash = await hash("builder123", 10);
-    await prisma.user.create({
+  const demoPasswordHash = await hash("builder123", 12);
+  let demoUser = await prisma.user.findUnique({ where: { email: demoEmail } });
+  if (!demoUser) {
+    demoUser = await prisma.user.create({
       data: {
         name: "Demo Builder",
         email: demoEmail,
-        passwordHash,
+        emailVerifiedBoolean: true,
+        passwordHash: demoPasswordHash,
       },
     });
     console.log("Seeded demo user.");
   } else {
     console.log("Skipped demo user seeding; user already exists.");
   }
+
+  const usersWithLegacyPassword = await prisma.user.findMany({
+    where: {
+      passwordHash: { not: null },
+      email: { not: null },
+    },
+    select: {
+      id: true,
+      passwordHash: true,
+    },
+  });
+
+  let createdCredentialAccounts = 0;
+  let updatedCredentialAccounts = 0;
+
+  for (const user of usersWithLegacyPassword) {
+    const account = await prisma.account.findUnique({
+      where: {
+        provider_providerAccountId: {
+          provider: "credential",
+          providerAccountId: user.id,
+        },
+      },
+    });
+
+    if (!account) {
+      await prisma.account.create({
+        data: {
+          userId: user.id,
+          type: "credentials",
+          provider: "credential",
+          providerAccountId: user.id,
+          password: user.passwordHash,
+        },
+      });
+      createdCredentialAccounts += 1;
+      continue;
+    }
+
+    if (!account.password) {
+      await prisma.account.update({
+        where: { id: account.id },
+        data: {
+          password: user.passwordHash,
+        },
+      });
+      updatedCredentialAccounts += 1;
+    }
+  }
+
+  console.log(`Backfilled credential accounts: created=${createdCredentialAccounts}, updated=${updatedCredentialAccounts}.`);
 }
 
 main()

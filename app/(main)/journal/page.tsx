@@ -1,9 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { useSession } from "next-auth/react";
 import { useEffect, useState } from "react";
 
+import { authClient } from "@/lib/auth-client";
 import { Card } from "@/components/ui/card";
 import { guestStore, type GuestJournalEntry } from "@/lib/guestStore";
 import type { JournalEntryDTO } from "@/lib/types";
@@ -16,12 +16,12 @@ type Row = {
 };
 
 export default function JournalPage() {
-  const { data: session } = useSession();
+  const { data: sessionData } = authClient.useSession();
   const [entries, setEntries] = useState<Row[]>([]);
 
   useEffect(() => {
     async function load() {
-      if (session?.user) {
+      if (sessionData?.user) {
         const response = await fetch("/api/journal");
         if (!response.ok) return;
         const data = (await response.json()) as JournalEntryDTO[];
@@ -48,7 +48,7 @@ export default function JournalPage() {
     }
 
     void load();
-  }, [session?.user]);
+  }, [sessionData?.user]);
 
   return (
     <div className="space-y-4">

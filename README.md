@@ -6,7 +6,7 @@ Builder's Tarot is a Next.js 14 MVP with custom suits/court cards, deterministic
 
 - Next.js 14 (App Router) + TypeScript + Tailwind CSS
 - Prisma + PostgreSQL
-- NextAuth (credentials login)
+- Better Auth (email/password + session cookies)
 - Zod validation
 - Framer Motion (card reveal animations)
 
@@ -37,23 +37,39 @@ npm install
 2. Copy env file:
 
 ```bash
-cp .env.example .env
+cp .env.example .env.local
 ```
 
-3. Push schema and seed:
+3. If this is a fresh database, create schema and seed:
 
 ```bash
 npm run db:migrate
 npm run db:seed
 ```
 
-4. Start dev server:
+4. If this is an existing deployed database, apply the Better Auth migration SQL:
+
+```bash
+npm run db:migrate:better-auth
+npm run db:seed
+```
+
+5. Start dev server:
 
 ```bash
 npm run dev
 ```
 
 App runs at `http://localhost:3000`.
+
+## Auth Environment Variables
+
+Set these in `.env.local` and Vercel project environment variables:
+
+- `DATABASE_URL` = your Postgres connection string
+- `BETTER_AUTH_SECRET` = strong random secret (generate with `openssl rand -base64 32`)
+- `BETTER_AUTH_URL` = app base URL (`http://localhost:3000` locally, production URL on Vercel)
+- `BETTER_AUTH_TRUSTED_ORIGINS` = comma-separated list of allowed origins (include local + production)
 
 ## Demo Login
 
@@ -83,6 +99,7 @@ Guest mode works without login and stores data in localStorage.
 - `DELETE /api/journal/:id`
 - `POST /api/favorites/:cardId`
 - `GET /api/daily`
+- `GET|POST /api/auth/*` (Better Auth handler)
 
 ## Notes
 

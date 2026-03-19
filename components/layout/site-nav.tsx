@@ -1,14 +1,16 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
-import { signOut, useSession } from "next-auth/react";
+import { usePathname, useRouter } from "next/navigation";
+import { useState } from "react";
 
+import { authClient } from "@/lib/auth-client";
 import { ThemeToggle } from "@/components/layout/theme-toggle";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
 const navItems = [
+  { href: "/dashboard", label: "Dashboard" },
   { href: "/", label: "Home" },
   { href: "/cards", label: "Cards" },
   { href: "/draw", label: "Draw" },
@@ -20,7 +22,19 @@ const navItems = [
 
 export function SiteNav() {
   const pathname = usePathname();
-  const { data: session } = useSession();
+  const router = useRouter();
+  const { data: sessionData } = authClient.useSession();
+  const [signingOut, setSigningOut] = useState(false);
+
+  async function handleSignOut() {
+    if (signingOut) return;
+
+    setSigningOut(true);
+    await authClient.signOut();
+    router.push("/login");
+    router.refresh();
+    setSigningOut(false);
+  }
 
   return (
     <header className="sticky top-0 z-40 border-b border-[#243248] bg-[#070f1f]/80 backdrop-blur">
@@ -45,19 +59,31 @@ export function SiteNav() {
         </nav>
         <div className="flex items-center gap-2.5">
           <ThemeToggle />
-          {session?.user ? (
+          {sessionData?.user ? (
             <Button
               variant="outline"
               size="sm"
               className="border-[#3a4658] bg-[#111b2f] text-[#d2d7df] hover:bg-[#18243a]"
-              onClick={() => signOut({ callbackUrl: "/" })}
+              onClick={handleSignOut}
+              disabled={signingOut}
             >
-              Log out
+              {signingOut ? "Logging out..." : "Log out"}
             </Button>
           ) : (
-            <span className="rounded-full bg-[#2f2c2a] px-3 py-1 text-xs font-medium text-[#c5c2bd]">
-              guest mode
-            </span>
+            <div className="flex items-center gap-2">
+              <Link
+                href="/login"
+                className="rounded-full border border-[#3a4658] bg-[#111b2f] px-3 py-1.5 text-xs font-medium text-[#d2d7df] transition-colors hover:bg-[#18243a]"
+              >
+                Log in
+              </Link>
+              <Link
+                href="/signup"
+                className="rounded-full bg-gradient-to-r from-[#6b5231] to-[#8a6130] px-3 py-1.5 text-xs font-medium text-[#f0cf91] transition-opacity hover:opacity-90"
+              >
+                Sign up
+              </Link>
+            </div>
           )}
         </div>
       </div>

@@ -1,8 +1,8 @@
 "use client";
 
-import { useSession } from "next-auth/react";
 import { useState } from "react";
 
+import { authClient } from "@/lib/auth-client";
 import { DrawnCard } from "@/components/cards/drawn-card";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -16,7 +16,7 @@ import type { DrawResult } from "@/lib/types";
 type DrawWithSession = DrawResult & { spreadSessionId?: string | null };
 
 export default function SpreadsPage() {
-  const { data: session } = useSession();
+  const { data: sessionData } = authClient.useSession();
   const [spreadKey, setSpreadKey] = useState<keyof typeof SPREADS>("three");
   const [allowReversed, setAllowReversed] = useState(true);
   const [result, setResult] = useState<DrawWithSession | null>(null);
@@ -57,7 +57,7 @@ export default function SpreadsPage() {
       })),
     };
 
-    if (session?.user) {
+    if (sessionData?.user) {
       await fetch("/api/journal", {
         method: "POST",
         body: JSON.stringify(payload),

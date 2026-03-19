@@ -1,8 +1,8 @@
 "use client";
 
-import { useSession } from "next-auth/react";
 import { useEffect, useState } from "react";
 
+import { authClient } from "@/lib/auth-client";
 import { DrawnCard } from "@/components/cards/drawn-card";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -12,7 +12,7 @@ import { guestStore } from "@/lib/guestStore";
 import type { DrawResult } from "@/lib/types";
 
 export default function DrawPage() {
-  const { data: session } = useSession();
+  const { data: sessionData } = authClient.useSession();
   const [reversedEnabled, setReversedEnabled] = useState(true);
   const [reversedChance, setReversedChance] = useState(30);
   const [loading, setLoading] = useState(false);
@@ -60,7 +60,7 @@ export default function DrawPage() {
       })),
     };
 
-    if (session?.user) {
+    if (sessionData?.user) {
       await fetch("/api/journal", {
         method: "POST",
         body: JSON.stringify(payload),

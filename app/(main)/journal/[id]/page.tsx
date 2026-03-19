@@ -1,9 +1,9 @@
 "use client";
 
-import { useSession } from "next-auth/react";
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
+import { authClient } from "@/lib/auth-client";
 import { DrawnCard } from "@/components/cards/drawn-card";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -31,7 +31,7 @@ type EntryState = {
 };
 
 export default function JournalDetailPage() {
-  const { data: session } = useSession();
+  const { data: sessionData } = authClient.useSession();
   const params = useParams<{ id: string }>();
   const router = useRouter();
 
@@ -43,7 +43,7 @@ export default function JournalDetailPage() {
     async function load() {
       if (!params.id) return;
 
-      if (session?.user) {
+      if (sessionData?.user) {
         const response = await fetch(`/api/journal/${params.id}`);
         if (!response.ok) return;
         const data = (await response.json()) as JournalEntryDTO;
@@ -72,13 +72,30 @@ export default function JournalDetailPage() {
       if (!guestEntry) return;
 
       const cardsResponse = await fetch("/api/cards");
-      const allCards = (await cardsResponse.json()) as Array<{
+      if (!cardsResponse.ok) {
+        return;
+      }
+
+      let allCards: Array<{
         id: string;
         name: string;
         uprightMeaning: string;
         reversedMeaning: string;
         promptQuestions: string[];
       }>;
+
+      try {
+        allCards = (await cardsResponse.json()) as Array<{
+          id: string;
+          name: string;
+          uprightMeaning: string;
+          reversedMeaning: string;
+          promptQuestions: string[];
+        }>;
+      } catch (error) {
+        console.error("Failed to parse /api/cards response", error);
+        return;
+      }
 
       setGuestEntry(guestEntry, allCards);
     }
@@ -108,12 +125,12 @@ export default function JournalDetailPage() {
     }
 
     void load();
-  }, [params.id, session?.user]);
+  }, [params.id, sessionData?.user]);
 
   async function saveNotes() {
     if (!entry) return;
 
-    if (session?.user) {
+    if (sessionData?.user) {
       await fetch(`/api/journal/${entry.id}`, {
         method: "PATCH",
         body: JSON.stringify({ notes }),
@@ -127,7 +144,7 @@ export default function JournalDetailPage() {
   async function deleteEntry() {
     if (!entry) return;
 
-    if (session?.user) {
+    if (sessionData?.user) {
       await fetch(`/api/journal/${entry.id}`, { method: "DELETE" });
     } else {
       guestStore.deleteJournal(entry.id);
