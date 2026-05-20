@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 
+import { CURRENT_DECK_CARD_NAMES, sortByCreatorMajorOrder } from "@/lib/card-deck";
 import { prisma } from "@/lib/prisma";
 import { cardQuerySchema } from "@/lib/schemas";
 import { serializeCard } from "@/lib/serializers";
@@ -9,22 +10,18 @@ export async function GET(request: NextRequest) {
   const userId = await requireUserId();
   const query = cardQuerySchema.safeParse({
     search: request.nextUrl.searchParams.get("search") ?? undefined,
-    arcana: request.nextUrl.searchParams.get("arcana") ?? undefined,
-    suit: request.nextUrl.searchParams.get("suit") ?? undefined,
-    rank: request.nextUrl.searchParams.get("rank") ?? undefined,
   });
 
   if (!query.success) {
     return NextResponse.json({ error: "Invalid filters." }, { status: 400 });
   }
 
-  const { search, arcana, suit, rank } = query.data;
+  const { search } = query.data;
 
   const cards = await prisma.card.findMany({
     where: {
-      arcana,
-      suit,
-      rank,
+      arcana: "MAJOR",
+      name: { in: CURRENT_DECK_CARD_NAMES },
       ...(search
         ? {
             OR: [
@@ -35,7 +32,7 @@ export async function GET(request: NextRequest) {
           }
         : {}),
     },
-    orderBy: [{ arcana: "asc" }, { suit: "asc" }, { name: "asc" }],
+    orderBy: { name: "asc" },
   });
 
   let favoriteIds = new Set<string>();
@@ -47,5 +44,7 @@ export async function GET(request: NextRequest) {
     favoriteIds = new Set(favorites.map((item) => item.cardId));
   }
 
-  return NextResponse.json(cards.map((card) => ({ ...serializeCard(card), favorited: favoriteIds.has(card.id) })));
+  return NextResponse.json(
+    sortByCreatorMajorOrder(cards).map((card) => ({ ...serializeCard(card), favorited: favoriteIds.has(card.id) })),
+  );
 }

@@ -5,19 +5,14 @@ import { useEffect, useMemo, useState } from "react";
 import { CardTile } from "@/components/cards/card-tile";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Select } from "@/components/ui/select";
-import { ARCANA_LABELS, RANK_LABELS, SUIT_LABELS } from "@/lib/domain";
 import { guestStore } from "@/lib/guestStore";
-import { ARCANA_VALUES, RANK_VALUES, SUIT_VALUES, type CardDTO } from "@/lib/types";
+import type { CardDTO } from "@/lib/types";
 
 type ApiCard = CardDTO & { favorited?: boolean };
 
 export default function CardsPage() {
   const [cards, setCards] = useState<ApiCard[]>([]);
   const [search, setSearch] = useState("");
-  const [arcana, setArcana] = useState<string>("");
-  const [suit, setSuit] = useState<string>("");
-  const [rank, setRank] = useState<string>("");
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
@@ -28,9 +23,6 @@ export default function CardsPage() {
       try {
         const params = new URLSearchParams();
         if (search) params.set("search", search);
-        if (arcana) params.set("arcana", arcana);
-        if (suit) params.set("suit", suit);
-        if (rank) params.set("rank", rank);
 
         const response = await fetch(`/api/cards?${params.toString()}`, { signal: controller.signal });
         if (!response.ok) {
@@ -61,41 +53,20 @@ export default function CardsPage() {
     void load();
 
     return () => controller.abort();
-  }, [search, arcana, suit, rank]);
+  }, [search]);
 
   const title = useMemo(() => (loading ? "Loading cards..." : `${cards.length} cards`), [cards.length, loading]);
 
   return (
-    <div className="space-y-4">
-      <h1 className="text-3xl font-bold">Card Library</h1>
-      <Card className="grid gap-3 md:grid-cols-4">
-        <Input placeholder="Search card name or meaning" value={search} onChange={(e) => setSearch(e.target.value)} />
-        <Select value={arcana} onChange={(e) => setArcana(e.target.value)}>
-          <option value="">All arcana</option>
-          {ARCANA_VALUES.map((value) => (
-            <option key={value} value={value}>
-              {ARCANA_LABELS[value]}
-            </option>
-          ))}
-        </Select>
-        <Select value={suit} onChange={(e) => setSuit(e.target.value)}>
-          <option value="">All suits</option>
-          {SUIT_VALUES.map((value) => (
-            <option key={value} value={value}>
-              {SUIT_LABELS[value]}
-            </option>
-          ))}
-        </Select>
-        <Select value={rank} onChange={(e) => setRank(e.target.value)}>
-          <option value="">All ranks</option>
-          {RANK_VALUES.map((value) => (
-            <option key={value} value={value}>
-              {RANK_LABELS[value] ?? value}
-            </option>
-          ))}
-        </Select>
+    <div className="space-y-6">
+      <div>
+        <p className="text-[0.68rem] font-black uppercase tracking-[0.2em] text-[#d0a657]">Archive</p>
+        <h1 className="mt-2 font-display text-4xl font-black text-[#f1eee7]">Card Library</h1>
+      </div>
+      <Card>
+        <Input placeholder="Search the 22 creator archetypes" value={search} onChange={(e) => setSearch(e.target.value)} />
       </Card>
-      <p className="text-sm text-slate-600 dark:text-slate-400">{title}</p>
+      <p className="text-sm text-[#9d98a8]">{title}</p>
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
         {cards.map((card) => (
           <CardTile key={card.id} card={card} />

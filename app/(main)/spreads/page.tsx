@@ -82,11 +82,14 @@ export default function SpreadsPage() {
   const spread = SPREADS[spreadKey];
 
   return (
-    <div className="space-y-4">
-      <h1 className="text-3xl font-bold">Spreads</h1>
+    <div className="space-y-6">
+      <div>
+        <p className="text-[0.68rem] font-black uppercase tracking-[0.2em] text-[#d0a657]">Layouts</p>
+        <h1 className="mt-2 font-display text-4xl font-black text-[#f1eee7]">Spreads</h1>
+      </div>
       <Card className="space-y-3">
         <div>
-          <label className="mb-1 block text-sm font-medium">Spread type</label>
+          <label className="mb-1 block text-sm font-medium text-[#d5cfda]">Spread type</label>
           <Select value={spreadKey} onChange={(event) => setSpreadKey(event.target.value as keyof typeof SPREADS)}>
             {Object.values(SPREADS).map((item) => (
               <option key={item.key} value={item.key}>
@@ -96,10 +99,10 @@ export default function SpreadsPage() {
           </Select>
         </div>
         <div className="flex items-center justify-between">
-          <span className="text-sm font-medium">Allow reversed cards</span>
+          <span className="text-sm font-medium text-[#f1eee7]">Allow reversed cards</span>
           <Switch checked={allowReversed} onCheckedChange={setAllowReversed} />
         </div>
-        <p className="text-sm text-slate-600 dark:text-slate-400">Positions: {spread.positions.join(" · ")}</p>
+        <p className="text-sm text-[#9d98a8]">Positions: {spread.positions.join(" / ")}</p>
         <Button onClick={drawSpread} disabled={busy}>
           {busy ? "Ritual in progress..." : "Draw Spread"}
         </Button>

@@ -51,15 +51,18 @@ export default function JournalPage() {
   }, [sessionData?.user]);
 
   return (
-    <div className="space-y-4">
-      <h1 className="text-3xl font-bold">Journal</h1>
+    <div className="space-y-6">
+      <div>
+        <p className="text-[0.68rem] font-black uppercase tracking-[0.2em] text-[#d0a657]">Archive</p>
+        <h1 className="mt-2 font-display text-4xl font-black text-[#f1eee7]">Journal</h1>
+      </div>
       <div className="grid gap-3">
         {entries.map((entry) => (
           <Link href={`/journal/${entry.id}`} key={entry.id}>
             <Card className="transition-transform hover:-translate-y-0.5 hover:shadow-md">
-              <h2 className="text-base font-semibold capitalize">{entry.spreadType}</h2>
-              <p className="text-sm text-slate-600 dark:text-slate-400">
-                {new Date(entry.createdAt).toLocaleString()} · {entry.cardCount} card(s)
+              <h2 className="font-display text-lg font-black capitalize text-[#f1eee7]">{entry.spreadType}</h2>
+              <p className="mt-2 text-sm text-[#9d98a8]">
+                {new Date(entry.createdAt).toLocaleString()} / {entry.cardCount} card(s)
               </p>
             </Card>
           </Link>

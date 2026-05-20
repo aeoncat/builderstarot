@@ -8,13 +8,13 @@ export function Switch({ checked, onCheckedChange }: { checked: boolean; onCheck
       type="button"
       onClick={() => onCheckedChange(!checked)}
       className={cn(
-        "relative h-6 w-11 rounded-full transition-colors",
-        checked ? "bg-indigo-500" : "bg-slate-300 dark:bg-slate-700",
+        "gold-focus relative h-6 w-11 rounded-lg border border-[#3d3322] transition-colors",
+        checked ? "bg-[#d0a657]" : "bg-[#17151f]",
       )}
     >
       <span
         className={cn(
-          "absolute left-0.5 top-0.5 h-5 w-5 rounded-full bg-white transition-transform",
+          "absolute left-0.5 top-0.5 h-5 w-5 rounded-md bg-[#f1eee7] transition-transform",
           checked ? "translate-x-5" : "translate-x-0",
         )}
       />

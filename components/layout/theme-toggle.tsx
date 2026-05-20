@@ -11,20 +11,20 @@ export function ThemeToggle() {
       type="button"
       onClick={() => setTheme(isDark ? "light" : "dark")}
       aria-label="Toggle theme"
-      className="inline-flex items-center gap-2.5 rounded-full bg-transparent px-0 py-0.5 text-sm text-[#d3d9e2]"
+      className="gold-focus inline-flex items-center gap-2.5 rounded-lg bg-transparent px-0 py-0.5 text-sm text-[#d5cfda]"
     >
       <span
-        className={`relative inline-flex h-7 w-12 items-center rounded-full border border-[#4d3f28] transition-colors ${
-          isDark ? "bg-[#d39a32]" : "bg-[#334767]"
+        className={`relative inline-flex h-7 w-12 items-center rounded-lg border border-[#3d3322] transition-colors ${
+          isDark ? "bg-[#d0a657]" : "bg-[#17151f]"
         }`}
       >
         <span
-          className={`h-5 w-5 rounded-full bg-[#f7e6c0] shadow-sm transition-transform ${
+          className={`h-5 w-5 rounded-md bg-[#f1eee7] shadow-sm transition-transform ${
             isDark ? "translate-x-6" : "translate-x-1"
           }`}
         />
       </span>
-      <span className="font-medium">theme</span>
+      <span className="hidden font-black sm:inline">theme</span>
     </button>
   );
 }

@@ -83,15 +83,18 @@ export default function DrawPage() {
   }
 
   return (
-    <div className="space-y-4">
-      <h1 className="text-3xl font-bold">Single Draw</h1>
+    <div className="space-y-6">
+      <div>
+        <p className="text-[0.68rem] font-black uppercase tracking-[0.2em] text-[#d0a657]">Reading</p>
+        <h1 className="mt-2 font-display text-4xl font-black text-[#f1eee7]">Single Draw</h1>
+      </div>
       <Card className="space-y-3">
         <div className="flex items-center justify-between">
-          <span className="text-sm font-medium">Allow reversed cards</span>
+          <span className="text-sm font-medium text-[#f1eee7]">Allow reversed cards</span>
           <Switch checked={reversedEnabled} onCheckedChange={setReversedEnabled} />
         </div>
         <div className="space-y-1">
-          <label htmlFor="reversedChance" className="text-sm font-medium">
+          <label htmlFor="reversedChance" className="text-sm font-medium text-[#d5cfda]">
             Reversed chance: {reversedChance}%
           </label>
           <input
@@ -112,7 +115,7 @@ export default function DrawPage() {
 
       {ritual ? (
         <Card>
-          <p className="text-center text-sm text-slate-600 dark:text-slate-400">Shuffling... breathe, focus, and reveal.</p>
+          <p className="text-center text-sm text-[#9d98a8]">Shuffling. Breathe, focus, and reveal.</p>
         </Card>
       ) : null}
 

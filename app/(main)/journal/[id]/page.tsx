@@ -155,13 +155,16 @@ export default function JournalDetailPage() {
   }
 
   if (!entry) {
-    return <Card>Loading entry...</Card>;
+    return <Card className="text-[#9d98a8]">Loading entry...</Card>;
   }
 
   return (
-    <div className="space-y-4">
-      <h1 className="text-3xl font-bold capitalize">{entry.spreadType} reading</h1>
-      <p className="text-sm text-slate-600 dark:text-slate-400">{new Date(entry.createdAt).toLocaleString()}</p>
+    <div className="space-y-6">
+      <div>
+        <p className="text-[0.68rem] font-black uppercase tracking-[0.2em] text-[#d0a657]">Journal</p>
+        <h1 className="mt-2 font-display text-4xl font-black capitalize text-[#f1eee7]">{entry.spreadType} Reading</h1>
+      </div>
+      <p className="text-sm text-[#9d98a8]">{new Date(entry.createdAt).toLocaleString()}</p>
       <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
         {entry.cards.map((item, index) => (
           <DrawnCard
@@ -174,7 +177,7 @@ export default function JournalDetailPage() {
         ))}
       </div>
       <Card className="space-y-3">
-        <h2 className="font-semibold">Notes</h2>
+        <h2 className="font-display font-black text-[#f1eee7]">Notes</h2>
         <Textarea value={notes} onChange={(event) => setNotes(event.target.value)} />
         <div className="flex gap-2">
           <Button onClick={saveNotes}>Save Notes</Button>
@@ -184,7 +187,7 @@ export default function JournalDetailPage() {
         </div>
       </Card>
       <Dialog open={confirmDelete} onClose={() => setConfirmDelete(false)} title="Delete this journal entry?">
-        <p className="text-sm text-slate-600 dark:text-slate-400">This action cannot be undone.</p>
+        <p className="text-sm text-[#9d98a8]">This action cannot be undone.</p>
         <div className="mt-4 flex justify-end gap-2">
           <Button variant="outline" onClick={() => setConfirmDelete(false)}>
             Cancel

@@ -114,9 +114,12 @@ export default function DailyPage() {
   }
 
   return (
-    <div className="space-y-4">
-      <h1 className="text-3xl font-bold">Daily Card</h1>
-      <p className="text-sm text-slate-600 dark:text-slate-400">
+    <div className="space-y-6">
+      <div>
+        <p className="text-[0.68rem] font-black uppercase tracking-[0.2em] text-[#d0a657]">Today</p>
+        <h1 className="mt-2 font-display text-4xl font-black text-[#f1eee7]">Daily Card</h1>
+      </div>
+      <p className="text-sm text-[#9d98a8]">
         Deterministic daily draw. Refreshing will return the same card for the day.
       </p>
       {daily ? (

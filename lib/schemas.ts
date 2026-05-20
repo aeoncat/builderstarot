@@ -27,9 +27,4 @@ export const updateJournalSchema = z.object({
 
 export const cardQuerySchema = z.object({
   search: z.string().optional(),
-  arcana: z.enum(["MAJOR", "MINOR"]).optional(),
-  suit: z.enum(["IDEAS", "EMOTIONS", "CODE", "GROWTH"]).optional(),
-  rank: z
-    .enum(["ACE", "TWO", "THREE", "FOUR", "FIVE", "SIX", "SEVEN", "EIGHT", "NINE", "TEN", "NOVICE", "APPRENTICE", "EXPERT", "LEAD"])
-    .optional(),
 });

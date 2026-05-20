@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 
+import { CURRENT_DECK_CARD_NAMES, sortByCreatorMajorOrder } from "@/lib/card-deck";
 import { prisma } from "@/lib/prisma";
 import { drawRequestSchema } from "@/lib/schemas";
 import { serializeCard } from "@/lib/serializers";
@@ -17,7 +18,15 @@ export async function POST(request: Request) {
 
   const { spreadType, positions, reversedChance } = parsed.data;
 
-  const cards = await prisma.card.findMany({ orderBy: { createdAt: "asc" } });
+  const cards = sortByCreatorMajorOrder(
+    await prisma.card.findMany({
+      where: {
+        arcana: "MAJOR",
+        name: { in: CURRENT_DECK_CARD_NAMES },
+      },
+      orderBy: { name: "asc" },
+    }),
+  );
 
   if (cards.length < positions.length) {
     return NextResponse.json({ error: "Not enough cards in deck." }, { status: 400 });

@@ -24,15 +24,18 @@ export default function SettingsPage() {
   }
 
   return (
-    <div className="space-y-4">
-      <h1 className="text-3xl font-bold">Settings</h1>
+    <div className="space-y-6">
+      <div>
+        <p className="text-[0.68rem] font-black uppercase tracking-[0.2em] text-[#d0a657]">Preferences</p>
+        <h1 className="mt-2 font-display text-4xl font-black text-[#f1eee7]">Settings</h1>
+      </div>
       <Card className="space-y-3">
         <div className="flex items-center justify-between">
-          <span className="text-sm font-medium">Enable reversed cards by default</span>
+          <span className="text-sm font-medium text-[#f1eee7]">Enable reversed cards by default</span>
           <Switch checked={allowReversedDefault} onCheckedChange={setAllowReversedDefault} />
         </div>
         <div className="space-y-1">
-          <label htmlFor="default-reversed" className="text-sm font-medium">
+          <label htmlFor="default-reversed" className="text-sm font-medium text-[#d5cfda]">
             Default reversed chance: {allowReversedDefault ? reversedChance : 0}%
           </label>
           <input

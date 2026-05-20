@@ -72,9 +72,9 @@ export function LoginForm() {
           {busy ? "Logging in..." : "Log in"}
         </Button>
       </form>
-      <p className="mt-4 text-sm text-slate-600 dark:text-slate-400">
+      <p className="mt-4 text-sm text-[#9d98a8]">
         No account yet?{" "}
-        <Link className="text-indigo-500 hover:text-indigo-400" href="/signup">
+        <Link className="text-[#d0a657] hover:text-[#e0bc72]" href="/signup">
           Create one
         </Link>
         .

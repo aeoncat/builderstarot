@@ -2,6 +2,7 @@
 
 import { motion } from "framer-motion";
 
+import { CardIcon } from "@/components/cards/card-icon";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { ORIENTATION_LABELS } from "@/lib/domain";
@@ -36,18 +37,27 @@ export function DrawnCard({
       <Card className="h-full">
         <div className="mb-2 flex items-center justify-between gap-2">
           <Badge>{positionName}</Badge>
-          <Badge className={orientation === "REVERSED" ? "border-rose-300 bg-rose-100 text-rose-700 dark:border-rose-700 dark:bg-rose-950 dark:text-rose-300" : ""}>
+          <Badge className={orientation === "REVERSED" ? "border-[#6d3144] bg-[#1d1018] text-[#e08aa5]" : ""}>
             {ORIENTATION_LABELS[orientation]}
           </Badge>
         </div>
-        <h3 className="text-lg font-semibold">{card.name}</h3>
-        <p className="mt-2 text-sm text-slate-600 dark:text-slate-400">
+        <div className="tarot-card-face my-5 flex aspect-[2/3] max-h-[360px] flex-col items-center justify-between rounded-[18px] px-6 py-7 text-center">
+          <p className="font-display text-[0.66rem] font-black uppercase tracking-[0.36em] text-[#8e6d32]">
+            {orientation === "REVERSED" ? "rev" : "up"}
+          </p>
+          <CardIcon cardName={card.name} className="h-12 w-12" strokeWidth={3} />
+          <div>
+            <h3 className="font-display text-2xl font-black text-[#d0a657]">{card.name}</h3>
+            <p className="mt-2 text-[0.68rem] font-black uppercase tracking-[0.22em] text-[#9d98a8]">{positionName}</p>
+          </div>
+        </div>
+        <p className="text-sm leading-6 text-[#9d98a8]">
           {meaningForOrientation(card.uprightMeaning, card.reversedMeaning, orientation)}
         </p>
         <ul className="mt-3 space-y-1 text-sm">
           {card.promptQuestions.map((prompt) => (
-            <li key={prompt} className="text-slate-700 dark:text-slate-300">
-              • {prompt}
+            <li key={prompt} className="text-[#d5cfda]">
+              {prompt}
             </li>
           ))}
         </ul>

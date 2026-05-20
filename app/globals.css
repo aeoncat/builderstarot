@@ -4,26 +4,36 @@
 
 @layer base {
   :root {
-    --background: 226 64% 8%;
-    --foreground: 38 28% 89%;
+    --background: 250 29% 4%;
+    --foreground: 42 18% 92%;
+    --gold: 41 56% 59%;
+    --gold-soft: 43 64% 72%;
+    --muted: 253 8% 62%;
+    --panel: 247 22% 8%;
+    --panel-soft: 247 19% 11%;
+    --line: 41 29% 22%;
   }
 
   .dark {
-    --background: 226 64% 8%;
-    --foreground: 38 28% 89%;
+    --background: 250 29% 4%;
+    --foreground: 42 18% 92%;
   }
 
   * {
-    @apply border-slate-800;
+    @apply border-[#312a1c];
   }
 
   body {
     @apply bg-background text-foreground;
     background-image:
-      radial-gradient(circle at 14% 22%, rgba(25, 83, 140, 0.34), transparent 36%),
-      radial-gradient(circle at 84% 16%, rgba(128, 71, 30, 0.28), transparent 34%),
-      linear-gradient(180deg, rgba(6, 18, 39, 0.95) 0%, rgba(4, 13, 31, 1) 100%);
+      radial-gradient(circle at 18% 32%, rgba(36, 30, 54, 0.45), transparent 34%),
+      radial-gradient(circle at 78% 46%, rgba(160, 118, 47, 0.12), transparent 32%),
+      linear-gradient(180deg, #06050b 0%, #090810 45%, #050509 100%);
     background-attachment: fixed;
+  }
+
+  input[type="range"] {
+    accent-color: #d0a657;
   }
 
   h1,
@@ -47,5 +57,54 @@
 
   .font-body {
     font-family: var(--font-body), sans-serif;
+  }
+
+  .font-display {
+    font-family: var(--font-heading), var(--font-body), sans-serif;
+  }
+
+  .text-muted {
+    color: hsl(var(--muted));
+  }
+
+  .text-gold {
+    color: hsl(var(--gold));
+  }
+
+  .bg-gold {
+    background-color: hsl(var(--gold));
+  }
+
+  .tarot-card-face {
+    position: relative;
+    overflow: hidden;
+    border: 1px solid rgba(211, 166, 82, 0.24);
+    background:
+      linear-gradient(180deg, rgba(28, 27, 42, 0.94), rgba(15, 14, 24, 0.96)),
+      radial-gradient(circle at 50% 12%, rgba(211, 166, 82, 0.13), transparent 38%);
+    box-shadow:
+      inset 0 0 0 1px rgba(211, 166, 82, 0.06),
+      0 20px 50px rgba(0, 0, 0, 0.35);
+  }
+
+  .tarot-card-face::before {
+    content: "";
+    position: absolute;
+    inset: 12px;
+    border: 1px solid rgba(211, 166, 82, 0.16);
+    border-radius: 18px;
+    pointer-events: none;
+  }
+
+  .gold-focus {
+    @apply focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#d3a652] focus-visible:ring-offset-2 focus-visible:ring-offset-[#06050b];
+  }
+
+  .scrollbar-none {
+    scrollbar-width: none;
+  }
+
+  .scrollbar-none::-webkit-scrollbar {
+    display: none;
   }
 }

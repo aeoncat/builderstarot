@@ -4,14 +4,14 @@ import { cva, type VariantProps } from "class-variance-authority";
 import { cn } from "@/lib/utils";
 
 const buttonVariants = cva(
-  "inline-flex items-center justify-center rounded-xl text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50",
+  "gold-focus inline-flex items-center justify-center rounded-lg text-sm font-black tracking-normal transition-colors disabled:pointer-events-none disabled:opacity-50",
   {
     variants: {
       variant: {
-        default: "bg-indigo-500 text-white hover:bg-indigo-400",
-        secondary: "bg-slate-800 text-slate-100 hover:bg-slate-700 dark:bg-slate-100 dark:text-slate-900 dark:hover:bg-slate-200",
-        ghost: "hover:bg-slate-100 dark:hover:bg-slate-800",
-        outline: "border border-slate-300 bg-transparent hover:bg-slate-100 dark:border-slate-700 dark:hover:bg-slate-800",
+        default: "bg-[#d0a657] text-[#090810] shadow-[0_14px_32px_rgba(208,166,87,0.18)] hover:bg-[#e0bc72]",
+        secondary: "border border-[#3d3322] bg-[#17151f] text-[#f0ece5] hover:bg-[#211e2b]",
+        ghost: "text-[#c8c2d0] hover:bg-[#17151f] hover:text-[#f0ece5]",
+        outline: "border border-[#3d3322] bg-transparent text-[#d5cfda] hover:border-[#d0a657]/55 hover:bg-[#17151f]",
         destructive: "bg-rose-600 text-white hover:bg-rose-500",
       },
       size: {

@@ -1,13 +1,14 @@
 import Link from "next/link";
 
+import { CardIcon } from "@/components/cards/card-icon";
+import { Card } from "@/components/ui/card";
 import { prisma } from "@/lib/prisma";
 import { getServerSession } from "@/lib/serverAuth";
 
 const ctas = [
-  { href: "/draw", title: "Draw a Card", subtitle: "Single ritual draw with interpretation." },
-  { href: "/daily", title: "Daily Card", subtitle: "One deterministic card per day." },
-  { href: "/spreads", title: "Spreads", subtitle: "Use 1, 3, and 5 card layouts." },
-  { href: "/journal", title: "Journal", subtitle: "Review and edit your reflections." },
+  { href: "/draw", title: "Draw Cards", subtitle: "A focused single-card reading." },
+  { href: "/daily", title: "Daily Card", subtitle: "One card, fixed for the day." },
+  { href: "/spreads", title: "Spreads", subtitle: "Three and five-card layouts." },
 ];
 
 export default async function HomePage() {
@@ -25,64 +26,93 @@ export default async function HomePage() {
       ? prisma.journalEntry.findMany({
           where: { userId: session.user.id },
           orderBy: { createdAt: "desc" },
-          take: 5,
+          take: 3,
           include: { cards: { include: { card: true } } },
         })
       : [],
   ]);
 
   return (
-    <div className="space-y-8">
-      <section>
-        <h1 className="text-5xl font-semibold tracking-tight text-[#e5ddd0] md:text-6xl">Builder&apos;s Tarot</h1>
-        <p className="mt-3 max-w-3xl text-[2rem] leading-relaxed text-[#acb4c0] md:text-[2.05rem]">
-          custom suits, renamed court cards, and a ritual-like draw flow for builders
-        </p>
+    <div className="space-y-14">
+      <section className="grid min-h-[calc(100vh-10rem)] items-start gap-10 pt-24 sm:pt-28 lg:grid-cols-[1.05fr_0.95fr]">
+        <div>
+          <h1 className="max-w-[760px] font-display text-5xl font-black leading-[0.98] tracking-normal text-[#f1eee7] sm:text-6xl lg:text-[4.45rem]">
+            The cards that <span className="text-[#d0a657]">shape your work,</span> reading your patterns.
+          </h1>
+          <p className="mt-7 max-w-2xl text-lg leading-8 text-[#9d98a8]">
+            BuildersTarot translates archetypes, decisions, and momentum into readings you can use before the next sprint,
+            launch, or hard conversation.
+          </p>
+          <div className="mt-8 flex flex-wrap gap-3">
+            <Link
+              href="/draw"
+              className="rounded-lg bg-[#d0a657] px-6 py-3 text-sm font-black text-[#090810] shadow-[0_16px_36px_rgba(208,166,87,0.18)] transition-colors hover:bg-[#e0bc72]"
+            >
+              Draw Your Cards Now
+            </Link>
+            <Link
+              href="/cards"
+              className="rounded-lg border border-[#3d3322] bg-[#17151f] px-6 py-3 text-sm font-black text-[#d5cfda] transition-colors hover:text-[#f1eee7]"
+            >
+              Browse Library
+            </Link>
+          </div>
+        </div>
+
+        <div className="relative min-h-[390px] lg:pt-2">
+          <div className="tarot-card-face absolute left-1/2 top-1/2 h-[330px] w-[214px] -translate-x-[38%] -translate-y-1/2 rotate-[-7deg] rounded-[24px] opacity-35" />
+          <div className="tarot-card-face absolute left-1/2 top-1/2 h-[360px] w-[234px] -translate-x-[49%] -translate-y-[48%] rotate-[6deg] rounded-[24px] opacity-50" />
+          <div className="tarot-card-face absolute left-1/2 top-1/2 flex h-[380px] w-[248px] -translate-x-1/2 -translate-y-1/2 rotate-[-3deg] flex-col items-center justify-between rounded-[24px] px-8 py-9">
+            <p className="font-display text-xs font-black uppercase tracking-[0.48em] text-[#8e6d32]">XVII</p>
+            <CardIcon cardName="The Builder" className="mt-20 h-14 w-14" strokeWidth={3} />
+            <div className="text-center">
+              <p className="font-display text-xl font-black text-[#d0a657]">The Builder</p>
+              <p className="mt-3 text-[0.7rem] font-black uppercase tracking-[0.26em] text-[#9d98a8]">Major Arcana</p>
+            </div>
+            <p className="font-display text-[0.62rem] font-black uppercase tracking-[0.42em] text-[#6f552a]">Builderstarot</p>
+          </div>
+        </div>
       </section>
 
-      <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+      <section className="grid gap-4 md:grid-cols-3">
         {ctas.map((item) => (
-          <Link
-            key={item.href}
-            href={item.href}
-            className="rounded-2xl border border-[#243248] bg-[#0a1428]/45 p-3 shadow-[inset_0_1px_0_rgba(204,173,119,0.1)] transition-colors hover:border-[#34506e]"
-          >
-            <div className="rounded-xl border border-[#4e3f2a] bg-gradient-to-r from-[#4f4632] to-[#664727] px-4 py-3 text-center text-xl font-semibold text-[#d39e43]">
-              {item.title}
-            </div>
+          <Link key={item.href} href={item.href}>
+            <Card className="h-full transition-transform hover:-translate-y-1 hover:border-[#d0a657]/45">
+              <p className="text-[0.68rem] font-black uppercase tracking-[0.2em] text-[#d0a657]">Reading</p>
+              <h2 className="mt-4 font-display text-2xl font-black text-[#f1eee7]">{item.title}</h2>
+              <p className="mt-3 text-sm leading-6 text-[#9d98a8]">{item.subtitle}</p>
+            </Card>
           </Link>
         ))}
       </section>
 
       <section className="grid gap-4 md:grid-cols-2">
-        <div className="rounded-2xl border border-[#243248] bg-[#081020]/78 p-6">
-          <h2 className="text-5xl font-semibold leading-none text-[#d7dde8]">today&apos;s daily card</h2>
+        <Card>
+          <p className="text-[0.68rem] font-black uppercase tracking-[0.2em] text-[#d0a657]">Today</p>
+          <h2 className="mt-3 font-display text-3xl font-black text-[#f1eee7]">Daily Card</h2>
           {daily ? (
-            <p className="mt-4 text-3xl text-[#b5beca]">
-              {daily.card.name} <span className="text-[#8f99a8]">(drawn {daily.dateKey})</span>
+            <p className="mt-4 text-lg text-[#9d98a8]">
+              {daily.card.name} <span className="text-[#706a7b]">drawn {daily.dateKey}</span>
             </p>
           ) : (
-            <p className="mt-4 text-3xl text-[#b5beca]">no daily card yet. open daily to draw today&apos;s card.</p>
+            <p className="mt-4 text-lg text-[#9d98a8]">Open Daily to draw today&apos;s card.</p>
           )}
-        </div>
-        <div className="rounded-2xl border border-[#243248] bg-[#081020]/78 p-6">
-          <h2 className="text-5xl font-semibold leading-none text-[#d7dde8]">recent draws</h2>
-          {session?.user ? (
-            recentDraws.length > 0 ? (
-              <div className="mt-3 space-y-2 text-2xl text-[#b5beca]">
-                {recentDraws.slice(0, 3).map((entry) => (
-                  <Link key={entry.id} href={`/journal/${entry.id}`} className="block hover:text-[#e4c486]">
-                    {new Date(entry.createdAt).toLocaleDateString()} · {entry.spreadType} · {entry.cards.length} card(s)
-                  </Link>
-                ))}
-              </div>
-            ) : (
-              <p className="mt-4 text-3xl text-[#b5beca]">no draws yet. draw a card to start your log.</p>
-            )
+        </Card>
+        <Card>
+          <p className="text-[0.68rem] font-black uppercase tracking-[0.2em] text-[#d0a657]">Journal</p>
+          <h2 className="mt-3 font-display text-3xl font-black text-[#f1eee7]">Recent Draws</h2>
+          {session?.user && recentDraws.length > 0 ? (
+            <div className="mt-4 space-y-2">
+              {recentDraws.map((entry) => (
+                <Link key={entry.id} href={`/journal/${entry.id}`} className="block text-sm text-[#9d98a8] hover:text-[#e0bc72]">
+                  {new Date(entry.createdAt).toLocaleDateString()} / {entry.spreadType} / {entry.cards.length} card(s)
+                </Link>
+              ))}
+            </div>
           ) : (
-            <p className="mt-4 text-3xl text-[#b5beca]">sign in to sync and view your last 5 draws here.</p>
+            <p className="mt-4 text-lg text-[#9d98a8]">Save readings to build your archive.</p>
           )}
-        </div>
+        </Card>
       </section>
     </div>
   );

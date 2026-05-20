@@ -5,7 +5,7 @@ import { AppProviders } from "@/components/providers/app-providers";
 import "./globals.css";
 
 const headingFont = localFont({
-  src: "./fonts/GeistMonoVF.woff",
+  src: "./fonts/GeistVF.woff",
   variable: "--font-heading",
   weight: "100 900",
 });
@@ -17,8 +17,8 @@ const bodyFont = localFont({
 });
 
 export const metadata: Metadata = {
-  title: "Builder's Tarot",
-  description: "A cozy-futurist tarot app for builders and creators.",
+  title: "BuildersTarot",
+  description: "Minimal tarot readings for builders and creators.",
 };
 
 export default function RootLayout({
