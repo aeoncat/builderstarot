@@ -61,4 +61,16 @@ export const auth = betterAuth({
     },
   },
   trustedOrigins,
+  // Throttle auth endpoints to slow credential brute-forcing.
+  // Default window applies to all auth routes; sign-in/sign-up are stricter.
+  rateLimit: {
+    enabled: true,
+    window: 60, // seconds
+    max: 100, // requests per window per IP for general auth routes
+    customRules: {
+      "/sign-in/email": { window: 60, max: 5 },
+      "/sign-up/email": { window: 60, max: 5 },
+      "/forget-password": { window: 60, max: 3 },
+    },
+  },
 });
