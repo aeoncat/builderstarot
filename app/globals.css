@@ -4,6 +4,18 @@
 
 @layer base {
   :root {
+    --background: 42 45% 94%;
+    --foreground: 252 16% 14%;
+    --gold: 41 56% 59%;
+    --gold-soft: 43 64% 72%;
+    --muted: 255 7% 43%;
+    --panel: 42 55% 97%;
+    --panel-soft: 40 37% 90%;
+    --line: 39 30% 72%;
+    color-scheme: light;
+  }
+
+  .dark {
     --background: 250 29% 4%;
     --foreground: 42 18% 92%;
     --gold: 41 56% 59%;
@@ -12,24 +24,27 @@
     --panel: 247 22% 8%;
     --panel-soft: 247 19% 11%;
     --line: 41 29% 22%;
-  }
-
-  .dark {
-    --background: 250 29% 4%;
-    --foreground: 42 18% 92%;
+    color-scheme: dark;
   }
 
   * {
-    @apply border-[#312a1c];
+    border-color: hsl(var(--line));
   }
 
   body {
     @apply bg-background text-foreground;
     background-image:
+      radial-gradient(circle at 18% 32%, rgba(208, 166, 87, 0.14), transparent 34%),
+      radial-gradient(circle at 78% 46%, rgba(160, 118, 47, 0.1), transparent 32%),
+      linear-gradient(180deg, #fbf8ef 0%, #f5efe3 45%, #eee5d4 100%);
+    background-attachment: fixed;
+  }
+
+  .dark body {
+    background-image:
       radial-gradient(circle at 18% 32%, rgba(36, 30, 54, 0.45), transparent 34%),
       radial-gradient(circle at 78% 46%, rgba(160, 118, 47, 0.12), transparent 32%),
       linear-gradient(180deg, #06050b 0%, #090810 45%, #050509 100%);
-    background-attachment: fixed;
   }
 
   input[type="range"] {
@@ -43,6 +58,78 @@
   h5,
   h6 {
     font-family: var(--font-heading), sans-serif;
+  }
+
+  /* Existing screens use the original dark palette directly. These mappings
+     give page content a cohesive eggshell theme without changing the dark nav. */
+  html:not(.dark) main [class~="text-[#f1eee7]"],
+  html:not(.dark) main [class~="text-[#f0ece5]"] {
+    color: #26212d;
+  }
+
+  html:not(.dark) main [class~="text-[#d5cfda]"],
+  html:not(.dark) main [class~="text-[#c8c2d0]"] {
+    color: #4d4654;
+  }
+
+  html:not(.dark) main [class~="text-[#9d98a8]"],
+  html:not(.dark) main [class~="text-[#827c8e]"],
+  html:not(.dark) main [class~="text-[#706a7b]"] {
+    color: #6d6573;
+  }
+
+  html:not(.dark) main [class~="placeholder:text-[#777181]"]::placeholder {
+    color: #8a8175;
+  }
+
+  html:not(.dark) main [class~="bg-[#0f0e18]/78"] {
+    background-color: hsl(var(--panel) / 0.9);
+  }
+
+  html:not(.dark) main [class~="bg-[#0f0e18]"],
+  html:not(.dark) main [class~="bg-[#0b0a12]/80"] {
+    background-color: hsl(var(--panel));
+  }
+
+  html:not(.dark) main [class~="bg-[#11101a]/82"],
+  html:not(.dark) main [class~="bg-[#11101a]/80"],
+  html:not(.dark) main [class~="bg-[#0b0a12]/62"],
+  html:not(.dark) main [class~="bg-[#1b1710]"],
+  html:not(.dark) main [class~="bg-[#15131d]"],
+  html:not(.dark) main [class~="bg-[#17151f]"] {
+    background-color: hsl(var(--panel-soft));
+  }
+
+  html:not(.dark) main [class~="border-[#2f281d]"],
+  html:not(.dark) main [class~="border-[#312a1c]"],
+  html:not(.dark) main [class~="border-[#3d3322]"] {
+    border-color: hsl(var(--line));
+  }
+
+  html:not(.dark) main [class~="bg-[#3d3322]"] {
+    background-color: hsl(var(--line));
+  }
+
+  html:not(.dark) main [class~="hover:bg-[#17151f]"]:hover,
+  html:not(.dark) main [class~="hover:bg-[#211e2b]"]:hover {
+    background-color: #e7dcc8;
+  }
+
+  html:not(.dark) main [class~="hover:text-[#f1eee7]"]:hover,
+  html:not(.dark) main [class~="hover:text-[#f0ece5]"]:hover {
+    color: #17131d;
+  }
+
+  html:not(.dark) .gold-focus {
+    --tw-ring-offset-color: #f6f0e3;
+  }
+
+  html:not(.dark) main .tarot-card-face [class~="text-[#f1eee7]"] {
+    color: #f1eee7;
+  }
+
+  html:not(.dark) main .tarot-card-face [class~="text-[#9d98a8]"] {
+    color: #9d98a8;
   }
 }
 

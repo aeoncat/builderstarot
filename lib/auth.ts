@@ -7,8 +7,12 @@ import { prisma } from "@/lib/prisma";
 const trustedOrigins = process.env.BETTER_AUTH_TRUSTED_ORIGINS
   ? process.env.BETTER_AUTH_TRUSTED_ORIGINS.split(",").map((origin) => origin.trim()).filter(Boolean)
   : undefined;
-const authBaseURL = process.env.BETTER_AUTH_URL ?? process.env.NEXTAUTH_URL;
-const authSecret = process.env.BETTER_AUTH_SECRET ?? process.env.NEXTAUTH_SECRET;
+const authBaseURL = process.env.BETTER_AUTH_URL;
+const authSecret = process.env.BETTER_AUTH_SECRET;
+
+if (!authSecret) {
+  throw new Error("BETTER_AUTH_SECRET is not set. Generate one with `openssl rand -base64 32`.");
+}
 
 export const auth = betterAuth({
   appName: "Builder's Tarot",

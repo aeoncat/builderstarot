@@ -73,8 +73,14 @@ Set these in `.env.local` and Vercel project environment variables:
 
 ## Demo Login
 
-- Email: `demo@builderstarot.local`
-- Password: `builder123`
+An optional demo user can be seeded for **local development only**. It is never
+created in production. To enable it, set the following before running `npm run db:seed`:
+
+```bash
+SEED_DEMO_USER=true DEMO_USER_PASSWORD="<choose-a-local-password>" npm run db:seed
+```
+
+Optionally override `DEMO_USER_EMAIL` (defaults to `demo@builderstarot.local`).
 
 Guest mode works without login and stores data in localStorage.
 

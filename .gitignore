@@ -25,9 +25,9 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 
-# local env files
-.env
-.env*.local
+# local env files (ignore all env files except the example template)
+.env*
+!.env.example
 
 # local sqlite
 prisma/dev.db

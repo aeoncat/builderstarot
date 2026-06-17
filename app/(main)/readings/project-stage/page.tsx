@@ -1,0 +1,364 @@
+"use client";
+
+import { FormEvent, useMemo, useState } from "react";
+import { motion } from "framer-motion";
+
+import { CardIcon } from "@/components/cards/card-icon";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Select } from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
+import { BUILDER_TYPES, getProjectStage, PROJECT_STAGES, type BuilderType, type ProjectStageKey } from "@/lib/projectStages";
+import { createProjectInterpretation, createProjectNextAction } from "@/lib/readingTemplates";
+import { getProjectStageSpread } from "@/lib/spreads";
+import type { DrawResult } from "@/lib/types";
+import { cn } from "@/lib/utils";
+
+type FlowStep = "stage" | "context" | "reading";
+
+type ProjectContext = {
+  projectName: string;
+  builderType: BuilderType;
+  context: string;
+};
+
+const stepLabels: Array<{ key: FlowStep; label: string }> = [
+  { key: "stage", label: "Stage" },
+  { key: "context", label: "Context" },
+  { key: "reading", label: "Reading" },
+];
+
+export default function ProjectStageReadingPage() {
+  const [flowStep, setFlowStep] = useState<FlowStep>("stage");
+  const [selectedStageKey, setSelectedStageKey] = useState<ProjectStageKey | null>(null);
+  const [projectContext, setProjectContext] = useState<ProjectContext>({
+    projectName: "",
+    builderType: "Developer",
+    context: "",
+  });
+  const [result, setResult] = useState<DrawResult | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+  const [copyStatus, setCopyStatus] = useState("");
+
+  const selectedStage = selectedStageKey ? getProjectStage(selectedStageKey) : null;
+  const spread = selectedStageKey ? getProjectStageSpread(selectedStageKey) : null;
+
+  const readingCards = useMemo(() => {
+    if (!result || !selectedStageKey || !selectedStage || !spread) return [];
+
+    return result.cards.map((item, index) => {
+      const position = spread.positions[index];
+      const cardMeaning = item.card.uprightMeaning;
+      const templateInput = {
+        stageKey: selectedStageKey,
+        stageName: selectedStage.name,
+        positionLabel: position.label,
+        positionPrompt: position.prompt,
+        cardName: item.card.name,
+        cardMeaning,
+        builderType: projectContext.builderType,
+        context: projectContext.context,
+      };
+
+      return {
+        ...item,
+        position,
+        cardMeaning,
+        interpretation: createProjectInterpretation(templateInput),
+        nextAction: createProjectNextAction(templateInput),
+      };
+    });
+  }, [projectContext.builderType, projectContext.context, result, selectedStage, selectedStageKey, spread]);
+
+  function chooseStage(stageKey: ProjectStageKey) {
+    setSelectedStageKey(stageKey);
+    setFlowStep("context");
+    setError("");
+  }
+
+  async function drawReading(event?: FormEvent<HTMLFormElement>) {
+    event?.preventDefault();
+
+    if (!selectedStageKey || !spread) return;
+    if (!projectContext.context.trim()) {
+      setError("Add a little project context so the reading has something useful to reflect.");
+      return;
+    }
+
+    setBusy(true);
+    setError("");
+    setCopyStatus("");
+
+    await new Promise((resolve) => setTimeout(resolve, 600));
+
+    const response = await fetch("/api/draw", {
+      method: "POST",
+      body: JSON.stringify({
+        spreadType: `project-stage:${selectedStageKey}`,
+        positions: spread.positions.map((position) => position.label),
+        reversedChance: 0,
+      }),
+    });
+
+    if (!response.ok) {
+      setError("The deck did not respond. Try pulling again in a moment.");
+      setBusy(false);
+      return;
+    }
+
+    setResult((await response.json()) as DrawResult);
+    setFlowStep("reading");
+    setBusy(false);
+  }
+
+  function startOver() {
+    setFlowStep("stage");
+    setSelectedStageKey(null);
+    setResult(null);
+    setError("");
+    setCopyStatus("");
+    setProjectContext({ projectName: "", builderType: "Developer", context: "" });
+  }
+
+  async function copyReading() {
+    if (!selectedStage || !spread || readingCards.length === 0) return;
+
+    const projectLine = projectContext.projectName.trim() ? `Project: ${projectContext.projectName.trim()}\n` : "";
+    const text = [
+      "Builder's Tarot - Project Stage Reading",
+      projectLine.trimEnd(),
+      `Stage: ${selectedStage.name}`,
+      `Builder type: ${projectContext.builderType}`,
+      `Context: ${projectContext.context.trim()}`,
+      `Spread: ${spread.name}`,
+      "",
+      ...readingCards.flatMap((item, index) => [
+        `${index + 1}. ${item.position.label} - ${item.card.name}`,
+        `Prompt: ${item.position.prompt}`,
+        `Meaning: ${item.cardMeaning}`,
+        `Interpretation: ${item.interpretation}`,
+        `Next action: ${item.nextAction}`,
+        "",
+      ]),
+    ]
+      .filter(Boolean)
+      .join("\n");
+
+    await navigator.clipboard.writeText(text);
+    setCopyStatus("Copied");
+  }
+
+  return (
+    <div className="space-y-6">
+      <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+        <div>
+          <p className="text-[0.68rem] font-black uppercase tracking-[0.2em] text-[#d0a657]">Project reading</p>
+          <h1 className="mt-2 font-display text-4xl font-black text-[#f1eee7]">Project Stage Reading</h1>
+          <p className="mt-2 max-w-2xl text-sm leading-6 text-[#9d98a8]">
+            Choose where the build really is, pull a focused three-card spread, and turn the reading into one practical next move.
+          </p>
+        </div>
+        <ProgressIndicator currentStep={flowStep} />
+      </div>
+
+      {flowStep === "stage" ? (
+        <section className="grid gap-3 md:grid-cols-2">
+          {PROJECT_STAGES.map((stage, index) => (
+            <motion.button
+              key={stage.key}
+              type="button"
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.28, delay: index * 0.03 }}
+              onClick={() => chooseStage(stage.key)}
+              className="gold-focus group rounded-xl border border-[#312a1c] bg-[#11101a]/82 p-4 text-left shadow-[0_18px_50px_rgba(0,0,0,0.2)] transition-colors hover:border-[#d0a657]/60 hover:bg-[#17151f]"
+            >
+              <div className="flex items-start justify-between gap-4">
+                <div>
+                  <h2 className="font-display text-xl font-black text-[#f1eee7]">{stage.name}</h2>
+                  <p className="mt-2 text-sm leading-6 text-[#9d98a8]">{stage.description}</p>
+                </div>
+                <span className="mt-1 flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-[#3d3322] text-sm font-black text-[#d0a657] transition-colors group-hover:border-[#d0a657]/70">
+                  {index + 1}
+                </span>
+              </div>
+            </motion.button>
+          ))}
+        </section>
+      ) : null}
+
+      {flowStep === "context" && selectedStage && spread ? (
+        <Card className="space-y-5">
+          <div className="flex flex-col gap-3 border-b border-[#312a1c] pb-4 sm:flex-row sm:items-start sm:justify-between">
+            <div>
+              <Badge>{selectedStage.name}</Badge>
+              <h2 className="mt-3 font-display text-2xl font-black text-[#f1eee7]">{spread.name}</h2>
+              <p className="mt-2 text-sm leading-6 text-[#9d98a8]">
+                {spread.positions.map((position) => position.label).join(" / ")}
+              </p>
+            </div>
+            <Button type="button" variant="outline" onClick={() => setFlowStep("stage")}>
+              Change Stage
+            </Button>
+          </div>
+
+          <form className="space-y-4" onSubmit={drawReading}>
+            <div className="grid gap-4 md:grid-cols-2">
+              <div>
+                <label htmlFor="projectName" className="mb-1 block text-sm font-medium text-[#d5cfda]">
+                  Project name
+                </label>
+                <Input
+                  id="projectName"
+                  value={projectContext.projectName}
+                  onChange={(event) => setProjectContext((current) => ({ ...current, projectName: event.target.value }))}
+                  placeholder="Optional"
+                />
+              </div>
+              <div>
+                <label htmlFor="builderType" className="mb-1 block text-sm font-medium text-[#d5cfda]">
+                  Builder type
+                </label>
+                <Select
+                  id="builderType"
+                  value={projectContext.builderType}
+                  onChange={(event) => setProjectContext((current) => ({ ...current, builderType: event.target.value as BuilderType }))}
+                >
+                  {BUILDER_TYPES.map((builderType) => (
+                    <option key={builderType} value={builderType}>
+                      {builderType}
+                    </option>
+                  ))}
+                </Select>
+              </div>
+            </div>
+
+            <div>
+              <label htmlFor="context" className="mb-1 block text-sm font-medium text-[#d5cfda]">
+                What are you building, and what do you need clarity on?
+              </label>
+              <Textarea
+                id="context"
+                value={projectContext.context}
+                onChange={(event) => setProjectContext((current) => ({ ...current, context: event.target.value }))}
+                placeholder="Example: I'm building a small habit tracker and I'm not sure what belongs in the first version."
+                className="min-h-[150px]"
+              />
+            </div>
+
+            {error ? <p className="text-sm font-semibold text-[#e08aa5]">{error}</p> : null}
+
+            <Button type="submit" disabled={busy}>
+              {busy ? "Shuffling for this stage..." : "Pull Project Spread"}
+            </Button>
+          </form>
+        </Card>
+      ) : null}
+
+      {flowStep === "reading" && selectedStage && spread && result ? (
+        <section className="space-y-4">
+          <Card className="space-y-4">
+            <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+              <div>
+                <Badge>{spread.name}</Badge>
+                <h2 className="mt-3 font-display text-3xl font-black text-[#f1eee7]">
+                  {projectContext.projectName.trim() || "Project Reading"}
+                </h2>
+                <div className="mt-3 grid gap-2 text-sm text-[#9d98a8] md:grid-cols-2">
+                  <p>
+                    <span className="font-black text-[#d5cfda]">Stage:</span> {selectedStage.name}
+                  </p>
+                  <p>
+                    <span className="font-black text-[#d5cfda]">Builder:</span> {projectContext.builderType}
+                  </p>
+                </div>
+                <p className="mt-3 max-w-3xl text-sm leading-6 text-[#d5cfda]">{projectContext.context}</p>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                <Button type="button" variant="outline" onClick={startOver}>
+                  Start over
+                </Button>
+                <Button type="button" variant="secondary" onClick={() => void drawReading()} disabled={busy}>
+                  {busy ? "Pulling..." : "Pull again"}
+                </Button>
+                <Button type="button" onClick={copyReading}>
+                  {copyStatus || "Copy reading"}
+                </Button>
+              </div>
+            </div>
+          </Card>
+
+          <div className="grid gap-4 lg:grid-cols-3">
+            {readingCards.map((item, index) => (
+              <motion.article
+                key={`${item.card.id}-${item.position.label}-${index}`}
+                initial={{ opacity: 0, y: 18, rotateY: 36 }}
+                animate={{ opacity: 1, y: 0, rotateY: 0 }}
+                transition={{ duration: 0.42, delay: index * 0.1 }}
+              >
+                <Card className="flex h-full flex-col gap-4">
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <Badge>{item.position.label}</Badge>
+                      <p className="mt-2 text-sm leading-5 text-[#9d98a8]">{item.position.prompt}</p>
+                    </div>
+                    <span className="text-sm font-black text-[#d0a657]">0{index + 1}</span>
+                  </div>
+
+                  <div className="tarot-card-face flex aspect-[2/3] max-h-[330px] flex-col items-center justify-between rounded-[18px] px-6 py-7 text-center">
+                    <p className="relative font-display text-[0.66rem] font-black uppercase tracking-[0.36em] text-[#8e6d32]">
+                      project
+                    </p>
+                    <CardIcon cardName={item.card.name} className="relative h-14 w-14" strokeWidth={3} />
+                    <div className="relative">
+                      <h3 className="font-display text-2xl font-black text-[#d0a657]">{item.card.name}</h3>
+                      <p className="mt-2 text-[0.68rem] font-black uppercase tracking-[0.22em] text-[#9d98a8]">{item.position.label}</p>
+                    </div>
+                  </div>
+
+                  <ReadingBlock title="Card meaning" body={item.cardMeaning} />
+                  <ReadingBlock title="Project interpretation" body={item.interpretation} />
+                  <ReadingBlock title="Next action" body={item.nextAction} emphasis />
+                </Card>
+              </motion.article>
+            ))}
+          </div>
+        </section>
+      ) : null}
+    </div>
+  );
+}
+
+function ProgressIndicator({ currentStep }: { currentStep: FlowStep }) {
+  const activeIndex = stepLabels.findIndex((step) => step.key === currentStep);
+
+  return (
+    <div className="flex min-w-fit items-center gap-2 rounded-xl border border-[#312a1c] bg-[#11101a]/80 p-2">
+      {stepLabels.map((step, index) => (
+        <div key={step.key} className="flex items-center gap-2">
+          <span
+            className={cn(
+              "flex h-8 items-center rounded-lg px-3 text-xs font-black uppercase tracking-[0.16em] transition-colors",
+              index <= activeIndex ? "bg-[#d0a657] text-[#090810]" : "bg-[#17151f] text-[#827c8e]",
+            )}
+          >
+            {step.label}
+          </span>
+          {index < stepLabels.length - 1 ? <span className="h-px w-4 bg-[#3d3322]" /> : null}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function ReadingBlock({ title, body, emphasis = false }: { title: string; body: string; emphasis?: boolean }) {
+  return (
+    <div className={cn("rounded-lg border border-[#312a1c] p-3", emphasis ? "bg-[#1b1710]" : "bg-[#0b0a12]/62")}>
+      <h4 className="text-[0.68rem] font-black uppercase tracking-[0.2em] text-[#d0a657]">{title}</h4>
+      <p className="mt-2 text-sm leading-6 text-[#d5cfda]">{body}</p>
+    </div>
+  );
+}

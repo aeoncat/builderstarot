@@ -101,21 +101,31 @@ async function syncCreatorMajorArcana() {
 async function main() {
   await syncCreatorMajorArcana();
 
-  const demoEmail = "demo@builderstarot.local";
-  const demoPasswordHash = await hash("builder123", 12);
-  let demoUser = await prisma.user.findUnique({ where: { email: demoEmail } });
-  if (!demoUser) {
-    demoUser = await prisma.user.create({
-      data: {
-        name: "Demo Builder",
-        email: demoEmail,
-        emailVerifiedBoolean: true,
-        passwordHash: demoPasswordHash,
-      },
-    });
-    console.log("Seeded demo user.");
+  // Demo user is only seeded outside production and must be explicitly opted in.
+  // Never seed a known-credential account against a production database.
+  if (process.env.NODE_ENV !== "production" && process.env.SEED_DEMO_USER === "true") {
+    const demoEmail = process.env.DEMO_USER_EMAIL ?? "demo@builderstarot.local";
+    const demoPassword = process.env.DEMO_USER_PASSWORD;
+    if (!demoPassword) {
+      console.log("Skipped demo user seeding; set DEMO_USER_PASSWORD to enable.");
+    } else {
+      const existing = await prisma.user.findUnique({ where: { email: demoEmail } });
+      if (!existing) {
+        await prisma.user.create({
+          data: {
+            name: "Demo Builder",
+            email: demoEmail,
+            emailVerifiedBoolean: true,
+            passwordHash: await hash(demoPassword, 12),
+          },
+        });
+        console.log("Seeded demo user.");
+      } else {
+        console.log("Skipped demo user seeding; user already exists.");
+      }
+    }
   } else {
-    console.log("Skipped demo user seeding; user already exists.");
+    console.log("Skipped demo user seeding (disabled outside opt-in / production).");
   }
 
   const usersWithLegacyPassword = await prisma.user.findMany({

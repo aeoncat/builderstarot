@@ -16,6 +16,7 @@ const navItems = [
   { href: "/draw", label: "Draw" },
   { href: "/daily", label: "Daily" },
   { href: "/spreads", label: "Spreads" },
+  { href: "/readings/project-stage", label: "Project" },
   { href: "/journal", label: "Journal" },
   { href: "/settings", label: "Settings" },
 ];
@@ -37,7 +38,7 @@ export function SiteNav() {
   }
 
   return (
-    <header className="sticky top-0 z-40 border-b border-[#211d18] bg-[#06050b]/82 backdrop-blur-xl">
+    <header className="sticky top-0 z-40 border-b border-[#211d18] bg-[#06050b]/[0.94] backdrop-blur-xl">
       <div className="mx-auto flex w-full max-w-[1160px] items-center justify-between gap-3 px-4 py-5">
         <Link href="/" className="whitespace-nowrap font-display text-[1.2rem] font-black tracking-normal text-[#d0a657]">
           BuildersTarot
