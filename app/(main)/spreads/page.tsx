@@ -1,9 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 
 import { authClient } from "@/lib/auth-client";
 import { DrawnCard } from "@/components/cards/drawn-card";
+import { ReadingSynthesis } from "@/components/cards/reading-synthesis";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Select } from "@/components/ui/select";
@@ -11,6 +12,9 @@ import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { SPREADS } from "@/lib/domain";
 import { guestStore } from "@/lib/guestStore";
+import { drawnCardSeed, interpretDrawnCard } from "@/lib/interpret";
+import { roleForPositionName } from "@/lib/position-roles";
+import { synthesizeReading } from "@/lib/synthesis";
 import type { DrawResult } from "@/lib/types";
 
 type DrawWithSession = DrawResult & { spreadSessionId?: string | null };
@@ -34,7 +38,7 @@ export default function SpreadsPage() {
       method: "POST",
       body: JSON.stringify({
         spreadType: spread.key,
-        positions: spread.positions,
+        positions: spread.positions.map((position) => position.label),
         reversedChance: allowReversed ? guestStore.getSettings().defaultReversedChance : 0,
       }),
     });
@@ -81,6 +85,40 @@ export default function SpreadsPage() {
 
   const spread = SPREADS[spreadKey];
 
+  // Resolve each drawn card's role and next action once, so the individual card
+  // (via DrawnCard, same role + seed) and the synthesis stay in lockstep.
+  const readings = useMemo(() => {
+    if (!result) return [];
+    const resultSpread = Object.values(SPREADS).find((item) => item.key === result.spreadType);
+    return result.cards.map((item) => {
+      const role =
+        resultSpread?.positions.find((position) => position.label === item.positionName)?.role ??
+        roleForPositionName(item.positionName);
+      const reading = interpretDrawnCard({
+        card: item.card,
+        orientation: item.orientation,
+        role,
+        positionLabel: item.positionName,
+        seed: drawnCardSeed(item.card.id, item.positionName, item.orientation),
+      });
+      return { role, nextAction: reading.nextAction };
+    });
+  }, [result]);
+
+  const synthesis = useMemo(() => {
+    if (!result || result.cards.length < 2 || readings.length !== result.cards.length) return null;
+    const cards = result.cards.map((item, index) => ({
+      cardId: item.card.id,
+      name: item.card.name,
+      orientation: item.orientation,
+      role: readings[index].role,
+      positionLabel: item.positionName,
+      nextAction: readings[index].nextAction,
+    }));
+    const seed = `${result.spreadType}:${cards.map((card) => `${card.cardId}:${card.orientation}`).join("|")}`;
+    return synthesizeReading({ cards, spreadType: result.spreadType, subject: "this project", seed });
+  }, [result, readings]);
+
   return (
     <div className="space-y-6">
       <div>
@@ -102,7 +140,7 @@ export default function SpreadsPage() {
           <span className="text-sm font-medium text-[#f1eee7]">Allow reversed cards</span>
           <Switch checked={allowReversed} onCheckedChange={setAllowReversed} />
         </div>
-        <p className="text-sm text-[#9d98a8]">Positions: {spread.positions.join(" / ")}</p>
+        <p className="text-sm text-[#9d98a8]">Positions: {spread.positions.map((position) => position.label).join(" / ")}</p>
         <Button onClick={drawSpread} disabled={busy}>
           {busy ? "Ritual in progress..." : "Draw Spread"}
         </Button>
@@ -110,6 +148,7 @@ export default function SpreadsPage() {
 
       {result ? (
         <div className="space-y-4">
+          {synthesis ? <ReadingSynthesis synthesis={synthesis.synthesis} title="What the Cards Say Together" /> : null}
           <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
             {result.cards.map((item, index) => (
               <DrawnCard
@@ -118,6 +157,7 @@ export default function SpreadsPage() {
                 orientation={item.orientation}
                 positionName={item.positionName}
                 index={index}
+                role={readings[index]?.role}
               />
             ))}
           </div>

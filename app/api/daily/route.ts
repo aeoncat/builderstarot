@@ -1,10 +1,10 @@
 import { NextResponse } from "next/server";
 
+import { DAILY_REVERSED_CHANCE, selectDailyDraw } from "@/lib/daily";
 import { prisma } from "@/lib/prisma";
 import { serializeCard } from "@/lib/serializers";
 import { requireUserId } from "@/lib/serverAuth";
 import { getChicagoDateKey } from "@/lib/time";
-import { getDeterministicDaily } from "@/lib/tarot";
 
 export async function GET() {
   const userId = await requireUserId();
@@ -29,8 +29,13 @@ export async function GET() {
     });
   }
 
-  const cards = await prisma.card.findMany({ orderBy: { id: "asc" } });
-  const pick = getDeterministicDaily(cards, `${userId}:${dateKey}`, 30);
+  // Only the current 22-card deck is eligible for new daily draws; retained
+  // legacy cards stay in the table for historical records but are filtered out.
+  const cards = await prisma.card.findMany();
+  const pick = selectDailyDraw(cards, `${userId}:${dateKey}`, DAILY_REVERSED_CHANCE);
+  if (!pick.card) {
+    return NextResponse.json({ error: "No cards available." }, { status: 503 });
+  }
 
   const created = await prisma.dailyDraw.create({
     data: {

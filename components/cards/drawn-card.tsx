@@ -1,12 +1,14 @@
 "use client";
 
+import { useMemo } from "react";
 import { motion } from "framer-motion";
 
 import { CardIcon } from "@/components/cards/card-icon";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { ORIENTATION_LABELS } from "@/lib/domain";
-import { meaningForOrientation } from "@/lib/serializers";
+import { interpretDrawnCard } from "@/lib/interpret";
+import { type PositionRole, roleForPositionName } from "@/lib/position-roles";
 import type { OrientationType } from "@/lib/types";
 
 type DrawnCardData = {
@@ -22,12 +24,28 @@ export function DrawnCard({
   orientation,
   positionName,
   index,
+  role,
 }: {
   card: DrawnCardData;
   orientation: OrientationType;
   positionName: string;
   index: number;
+  /** Semantic role for the interpretation engine; defaults to a lookup by
+   *  position name (covers stored/legacy names), then "insight". */
+  role?: PositionRole;
 }) {
+  const reading = useMemo(
+    () =>
+      interpretDrawnCard({
+        card,
+        orientation,
+        role: role ?? roleForPositionName(positionName),
+        positionLabel: positionName,
+        seed: `${card.id}:${positionName}:${orientation}`,
+      }),
+    [card, orientation, positionName, role],
+  );
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 16, rotateY: 40 }}
@@ -51,16 +69,16 @@ export function DrawnCard({
             <p className="mt-2 text-[0.68rem] font-black uppercase tracking-[0.22em] text-[#9d98a8]">{positionName}</p>
           </div>
         </div>
-        <p className="text-sm leading-6 text-[#9d98a8]">
-          {meaningForOrientation(card.uprightMeaning, card.reversedMeaning, orientation)}
-        </p>
-        <ul className="mt-3 space-y-1 text-sm">
-          {card.promptQuestions.map((prompt) => (
-            <li key={prompt} className="text-[#d5cfda]">
-              {prompt}
-            </li>
-          ))}
-        </ul>
+        <p className="text-sm leading-6 text-[#d5cfda]">{reading.interpretation}</p>
+        {reading.nextAction ? (
+          <div className="mt-3 rounded-lg border border-[#312a1c] bg-[#1b1710] p-3">
+            <h4 className="text-[0.68rem] font-black uppercase tracking-[0.2em] text-[#d0a657]">Next action</h4>
+            <p className="mt-1 text-sm leading-6 text-[#d5cfda]">{reading.nextAction}</p>
+          </div>
+        ) : null}
+        {reading.reflectionQuestion ? (
+          <p className="mt-3 text-sm italic leading-6 text-[#9d98a8]">{reading.reflectionQuestion}</p>
+        ) : null}
       </Card>
     </motion.div>
   );

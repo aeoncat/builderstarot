@@ -4,14 +4,19 @@ import { FormEvent, useMemo, useState } from "react";
 import { motion } from "framer-motion";
 
 import { CardIcon } from "@/components/cards/card-icon";
+import { ReadingSynthesis } from "@/components/cards/reading-synthesis";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import { extractSubject } from "@/lib/context-extract";
+import { ORIENTATION_LABELS } from "@/lib/domain";
+import { guestStore } from "@/lib/guestStore";
+import { interpretDrawnCard } from "@/lib/interpret";
+import { synthesizeReading } from "@/lib/synthesis";
 import { BUILDER_TYPES, getProjectStage, PROJECT_STAGES, type BuilderType, type ProjectStageKey } from "@/lib/projectStages";
-import { createProjectInterpretation, createProjectNextAction } from "@/lib/readingTemplates";
 import { getProjectStageSpread } from "@/lib/spreads";
 import type { DrawResult } from "@/lib/types";
 import { cn } from "@/lib/utils";
@@ -49,29 +54,50 @@ export default function ProjectStageReadingPage() {
   const readingCards = useMemo(() => {
     if (!result || !selectedStageKey || !selectedStage || !spread) return [];
 
+    // Used-frame tracking keeps the three cards from rhyming: no interpretation
+    // or action frame repeats within a reading while alternatives exist.
+    const usedFrameIds = new Set<string>();
+    const usedActionFrameIds = new Set<string>();
+
     return result.cards.map((item, index) => {
       const position = spread.positions[index];
-      const cardMeaning = item.card.uprightMeaning;
-      const templateInput = {
-        stageKey: selectedStageKey,
-        stageName: selectedStage.name,
+      const reading = interpretDrawnCard({
+        card: item.card,
+        orientation: item.orientation,
+        role: position.role,
         positionLabel: position.label,
-        positionPrompt: position.prompt,
-        cardName: item.card.name,
-        cardMeaning,
-        builderType: projectContext.builderType,
         context: projectContext.context,
-      };
+        projectName: projectContext.projectName,
+        stage: selectedStageKey,
+        seed: `${selectedStageKey}:${item.card.id}:${index}:${item.orientation}`,
+        usedFrameIds,
+        usedActionFrameIds,
+      });
+      usedFrameIds.add(reading.frameId);
+      usedActionFrameIds.add(reading.actionFrameId);
 
-      return {
-        ...item,
-        position,
-        cardMeaning,
-        interpretation: createProjectInterpretation(templateInput),
-        nextAction: createProjectNextAction(templateInput),
-      };
+      return { ...item, position, reading };
     });
-  }, [projectContext.builderType, projectContext.context, result, selectedStage, selectedStageKey, spread]);
+  }, [projectContext.context, projectContext.projectName, result, selectedStage, selectedStageKey, spread]);
+
+  const synthesis = useMemo(() => {
+    if (readingCards.length < 2 || !selectedStageKey) return null;
+    const subject = extractSubject({
+      context: projectContext.context,
+      projectName: projectContext.projectName,
+      stage: selectedStageKey,
+    });
+    const cards = readingCards.map((item) => ({
+      cardId: item.card.id,
+      name: item.card.name,
+      orientation: item.orientation,
+      role: item.position.role,
+      positionLabel: item.position.label,
+      nextAction: item.reading.nextAction,
+    }));
+    const seed = `${selectedStageKey}:${cards.map((card) => `${card.cardId}:${card.orientation}`).join("|")}`;
+    return synthesizeReading({ cards, spreadType: `project-stage:${selectedStageKey}`, subject, seed });
+  }, [readingCards, selectedStageKey, projectContext.context, projectContext.projectName]);
 
   function chooseStage(stageKey: ProjectStageKey) {
     setSelectedStageKey(stageKey);
@@ -99,7 +125,9 @@ export default function ProjectStageReadingPage() {
       body: JSON.stringify({
         spreadType: `project-stage:${selectedStageKey}`,
         positions: spread.positions.map((position) => position.label),
-        reversedChance: 0,
+        // Unified reversal policy: project readings honor the same
+        // user-adjustable default as other draws (30% unless changed).
+        reversedChance: guestStore.getSettings().defaultReversedChance,
       }),
     });
 
@@ -135,12 +163,21 @@ export default function ProjectStageReadingPage() {
       `Context: ${projectContext.context.trim()}`,
       `Spread: ${spread.name}`,
       "",
+      ...(synthesis
+        ? [
+            "Reading Together",
+            synthesis.synthesis.headline,
+            synthesis.synthesis.summary,
+            ...(synthesis.synthesis.priorityAction ? [`Start here: ${synthesis.synthesis.priorityAction}`] : []),
+            "",
+          ]
+        : []),
       ...readingCards.flatMap((item, index) => [
-        `${index + 1}. ${item.position.label} - ${item.card.name}`,
+        `${index + 1}. ${item.position.label} - ${item.card.name} (${ORIENTATION_LABELS[item.orientation]})`,
         `Prompt: ${item.position.prompt}`,
-        `Meaning: ${item.cardMeaning}`,
-        `Interpretation: ${item.interpretation}`,
-        `Next action: ${item.nextAction}`,
+        `Interpretation: ${item.reading.interpretation}`,
+        ...(item.reading.nextAction ? [`Next action: ${item.reading.nextAction}`] : []),
+        ...(item.reading.reflectionQuestion ? [`Reflection: ${item.reading.reflectionQuestion}`] : []),
         "",
       ]),
     ]
@@ -291,6 +328,8 @@ export default function ProjectStageReadingPage() {
             </div>
           </Card>
 
+          {synthesis ? <ReadingSynthesis synthesis={synthesis.synthesis} /> : null}
+
           <div className="grid gap-4 lg:grid-cols-3">
             {readingCards.map((item, index) => (
               <motion.article
@@ -302,7 +341,12 @@ export default function ProjectStageReadingPage() {
                 <Card className="flex h-full flex-col gap-4">
                   <div className="flex items-start justify-between gap-3">
                     <div>
-                      <Badge>{item.position.label}</Badge>
+                      <div className="flex flex-wrap gap-2">
+                        <Badge>{item.position.label}</Badge>
+                        <Badge className={item.orientation === "REVERSED" ? "border-[#6d3144] bg-[#1d1018] text-[#e08aa5]" : ""}>
+                          {ORIENTATION_LABELS[item.orientation]}
+                        </Badge>
+                      </div>
                       <p className="mt-2 text-sm leading-5 text-[#9d98a8]">{item.position.prompt}</p>
                     </div>
                     <span className="text-sm font-black text-[#d0a657]">0{index + 1}</span>
@@ -319,9 +363,11 @@ export default function ProjectStageReadingPage() {
                     </div>
                   </div>
 
-                  <ReadingBlock title="Card meaning" body={item.cardMeaning} />
-                  <ReadingBlock title="Project interpretation" body={item.interpretation} />
-                  <ReadingBlock title="Next action" body={item.nextAction} emphasis />
+                  <ReadingBlock title="Interpretation" body={item.reading.interpretation} />
+                  {item.reading.nextAction ? <ReadingBlock title="Next action" body={item.reading.nextAction} emphasis /> : null}
+                  {item.reading.reflectionQuestion ? (
+                    <ReadingBlock title="Sit with this" body={item.reading.reflectionQuestion} />
+                  ) : null}
                 </Card>
               </motion.article>
             ))}

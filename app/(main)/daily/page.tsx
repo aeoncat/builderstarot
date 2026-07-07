@@ -6,8 +6,8 @@ import { authClient } from "@/lib/auth-client";
 import { DrawnCard } from "@/components/cards/drawn-card";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { selectDailyDraw } from "@/lib/daily";
 import { guestStore } from "@/lib/guestStore";
-import { deterministicIndex } from "@/lib/random";
 import { getLocalDateKey } from "@/lib/time";
 import type { CardDTO, OrientationType } from "@/lib/types";
 
@@ -60,15 +60,12 @@ export default function DailyPage() {
         return;
       }
 
-      if (!cards.length) {
+      // Same deck filter + deterministic selection as the authenticated route.
+      const { card, orientation } = selectDailyDraw(cards, `guest:${dateKey}`);
+      if (!card) {
         setLoadError("No cards available.");
         return;
       }
-
-      const index = deterministicIndex(`guest:${dateKey}`, cards.length);
-      const orientation: OrientationType =
-        deterministicIndex(`guest:${dateKey}:orientation`, 100) < 30 ? "REVERSED" : "UPRIGHT";
-      const card = cards[index];
       guestStore.setDaily({ dateKey, cardId: card.id, orientation });
       setDaily({ dateKey, card, orientation });
     }

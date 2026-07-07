@@ -1,6 +1,7 @@
 import { PrismaClient } from "@prisma/client";
 import { hash } from "bcryptjs";
 
+import { getCardContentByName } from "../lib/card-content";
 import { CREATOR_MAJOR_ARCANA, CURRENT_DECK_CARD_NAMES } from "../lib/card-deck";
 
 const prisma = new PrismaClient();
@@ -14,14 +15,20 @@ async function syncCreatorMajorArcana() {
   await prisma.$transaction(
     async (tx) => {
       for (const card of CREATOR_MAJOR_ARCANA) {
+        // Legacy display columns derive from the rich content registry when
+        // available, so DB fallbacks and the card library reflect the same
+        // authored text the interpretation engine uses.
+        const content = getCardContentByName(card.name);
         const data = {
           arcana: card.arcana,
           suit: null,
           rank: null,
-          keywords: JSON.stringify(card.keywords),
-          uprightMeaning: card.uprightMeaning,
-          reversedMeaning: card.reversedMeaning,
-          promptQuestions: JSON.stringify(card.promptQuestions),
+          keywords: JSON.stringify(content ? [...content.keywords] : card.keywords),
+          uprightMeaning: content?.upright.meaning ?? card.uprightMeaning,
+          reversedMeaning: content?.reversed.meaning ?? card.reversedMeaning,
+          promptQuestions: JSON.stringify(
+            content ? [...content.upright.questions, ...content.reversed.questions] : card.promptQuestions,
+          ),
           imageUrl: card.imageUrl ?? null,
         };
 
