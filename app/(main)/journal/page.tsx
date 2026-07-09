@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 
 import { authClient } from "@/lib/auth-client";
 import { Card } from "@/components/ui/card";
+import { ProPrompt } from "@/components/validation/pro-prompt";
 import { guestStore, type GuestJournalEntry } from "@/lib/guestStore";
 import type { JournalEntryDTO } from "@/lib/types";
 
@@ -56,6 +57,7 @@ export default function JournalPage() {
         <p className="text-[0.68rem] font-black uppercase tracking-[0.2em] text-[#d0a657]">Archive</p>
         <h1 className="mt-2 font-display text-4xl font-black text-[#f1eee7]">Journal</h1>
       </div>
+      <ProPrompt placement="journal" />
       <div className="grid gap-3">
         {entries.map((entry) => (
           <Link href={`/journal/${entry.id}`} key={entry.id}>

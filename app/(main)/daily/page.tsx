@@ -6,6 +6,7 @@ import { authClient } from "@/lib/auth-client";
 import { DrawnCard } from "@/components/cards/drawn-card";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { track, trackReadingCompleted } from "@/lib/analytics/client";
 import { selectDailyDraw } from "@/lib/daily";
 import { guestStore } from "@/lib/guestStore";
 import { getLocalDateKey } from "@/lib/time";
@@ -73,8 +74,19 @@ export default function DailyPage() {
     void loadDaily();
   }, [sessionData?.user]);
 
+  useEffect(() => {
+    if (!daily) return;
+    // Completed = the interpretation is on screen; once per day per browser.
+    trackReadingCompleted(`daily:${daily.dateKey}`, "reading_completed", {
+      surface: "daily",
+      authed: Boolean(sessionData?.user),
+      reversedCount: daily.orientation === "REVERSED" ? 1 : 0,
+    });
+  }, [daily, sessionData?.user]);
+
   async function saveDailyToJournal() {
     if (!daily) return;
+    track("journal_entry_saved", { surface: "daily", authed: Boolean(sessionData?.user) });
 
     if (sessionData?.user) {
       await fetch("/api/journal", {

@@ -54,10 +54,19 @@ export type JournalEntryDTO = {
   createdAt: string;
   updatedAt: string;
   spreadSessionId: string | null;
+  // Nullable snapshot fields (entries saved before snapshots return null).
+  projectStage: string | null;
+  subject: string | null;
+  synthesisHeadline: string | null;
+  synthesisSummary: string | null;
+  synthesisPriorityAction: string | null;
   cards: Array<{
     id: string;
     positionName: string;
     orientation: OrientationType;
+    interpretationText: string | null;
+    nextActionText: string | null;
+    reflectionQuestionText: string | null;
     card: CardDTO;
   }>;
 };

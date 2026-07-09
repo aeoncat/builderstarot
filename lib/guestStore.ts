@@ -12,6 +12,10 @@ export type GuestJournalCard = {
   cardName: string;
   positionName: string;
   orientation: "UPRIGHT" | "REVERSED";
+  // Optional reading snapshot (exact rendered text; never raw context).
+  interpretationText?: string;
+  nextActionText?: string;
+  reflectionQuestionText?: string;
 };
 
 export type GuestJournalEntry = {
@@ -20,6 +24,12 @@ export type GuestJournalEntry = {
   notes: string;
   createdAt: string;
   cards: GuestJournalCard[];
+  // Optional entry-level snapshot for project readings.
+  projectStage?: string;
+  subject?: string;
+  synthesisHeadline?: string;
+  synthesisSummary?: string;
+  synthesisPriorityAction?: string;
 };
 
 export type GuestDailyRecord = {

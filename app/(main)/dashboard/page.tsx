@@ -1,6 +1,8 @@
 import { redirect } from "next/navigation";
 
 import { Card } from "@/components/ui/card";
+import { ProPrompt } from "@/components/validation/pro-prompt";
+import { ValidationSurvey } from "@/components/validation/validation-survey";
 import { prisma } from "@/lib/prisma";
 import { getServerSession } from "@/lib/serverAuth";
 
@@ -45,6 +47,9 @@ export default async function DashboardPage() {
           <p className="mt-3 font-display text-2xl font-black capitalize text-[#f1eee7]">{latestJournal?.spreadType ?? "None yet"}</p>
         </Card>
       </div>
+
+      <ValidationSurvey />
+      <ProPrompt placement="dashboard" />
     </div>
   );
 }

@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 
 import { authClient } from "@/lib/auth-client";
+import { track, trackReadingCompleted } from "@/lib/analytics/client";
 import { DrawnCard } from "@/components/cards/drawn-card";
 import { ReadingSynthesis } from "@/components/cards/reading-synthesis";
 import { Button } from "@/components/ui/button";
@@ -29,8 +30,11 @@ export default function SpreadsPage() {
 
   async function drawSpread() {
     const spread = SPREADS[spreadKey];
+    const surface = spread.key === "three" ? "three" : spread.key === "five" ? "five" : "single";
     setBusy(true);
     setResult(null);
+
+    track("reading_started", { surface, spreadSize: spread.positions.length, authed: Boolean(sessionData?.user) });
 
     await new Promise((resolve) => setTimeout(resolve, 1000));
 
@@ -43,12 +47,30 @@ export default function SpreadsPage() {
       }),
     });
 
-    setResult((await response.json()) as DrawWithSession);
+    if (!response.ok) {
+      setBusy(false);
+      return;
+    }
+
+    const data = (await response.json()) as DrawWithSession;
+    setResult(data);
     setBusy(false);
+
+    trackReadingCompleted(`spread:${data.cards.map((item) => item.card.id).join("-")}:${Date.now()}`, "reading_completed", {
+      surface,
+      spreadSize: spread.positions.length,
+      authed: Boolean(sessionData?.user),
+      reversedCount: data.cards.filter((item) => item.orientation === "REVERSED").length,
+    });
   }
 
   async function saveSpreadToJournal() {
     if (!result) return;
+
+    track("journal_entry_saved", {
+      surface: spreadKey === "three" ? "three" : spreadKey === "five" ? "five" : "single",
+      authed: Boolean(sessionData?.user),
+    });
 
     const payload = {
       spreadType: result.spreadType,

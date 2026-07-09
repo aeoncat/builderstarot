@@ -6,6 +6,7 @@ import { useState } from "react";
 
 import { authClient } from "@/lib/auth-client";
 import { toAuthErrorMessage } from "@/lib/auth-error-message";
+import { track } from "@/lib/analytics/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardDescription, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -48,6 +49,10 @@ export function SignupForm() {
         setError(toAuthErrorMessage(signUpError, "Unable to create account right now."));
         return;
       }
+
+      // Same visitorId persists across signup, so the guest history and the
+      // new account merge naturally in analytics.
+      track("account_created", { authed: true });
 
       router.push("/dashboard");
       router.refresh();

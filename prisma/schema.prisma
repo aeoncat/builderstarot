@@ -129,6 +129,16 @@ model JournalEntry {
   createdAt       DateTime           @default(now())
   updatedAt       DateTime           @updatedAt
   spreadSessionId String?            @unique
+  // Reading snapshot (nullable, additive): preserves the exact synthesis the
+  // user saw. Raw project context is never stored — only the safely extracted
+  // subject noun phrase.
+  projectStage            String?
+  subject                 String?
+  synthesisHeadline       String?
+  synthesisSummary        String?
+  synthesisPriorityAction String?
+  engineVersion           Int?
+  synthesisVersion        Int?
   cards           JournalEntryCard[]
   spreadSession   SpreadSession?     @relation(fields: [spreadSessionId], references: [id], onDelete: SetNull)
   user            User               @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -143,6 +153,12 @@ model JournalEntryCard {
   positionName   String
   orientation    String
   sortOrder      Int
+  // Per-card snapshot (nullable, additive): the exact rendered reading text.
+  interpretationText     String?
+  nextActionText         String?
+  reflectionQuestionText String?
+  positionRole           String?
+  cardContentVersion     Int?
 
   journalEntry JournalEntry @relation(fields: [journalEntryId], references: [id], onDelete: Cascade)
   card         Card         @relation(fields: [cardId], references: [id], onDelete: Cascade)
@@ -174,4 +190,49 @@ model SpreadCard {
   card    Card          @relation(fields: [cardId], references: [id], onDelete: Cascade)
 
   @@index([sessionId, sortOrder])
+}
+
+// ---------------------------------------------------------------------------
+// Validation-phase models (product events, Pro waitlist, survey).
+// Events hold only approved, non-sensitive properties — never raw context,
+// reading text, notes, or emails. See lib/analytics/events.ts.
+// ---------------------------------------------------------------------------
+
+model ProductEvent {
+  id        String   @id @default(cuid())
+  name      String
+  /// Pseudonymous, locally generated visitor id (random UUID; no fingerprinting).
+  visitorId String
+  /// Internal user id when authenticated; never the email.
+  userId    String?
+  /// JSON string of allowlisted properties only.
+  props     String   @default("{}")
+  createdAt DateTime @default(now())
+
+  @@index([name, createdAt])
+  @@index([visitorId, createdAt])
+  @@index([userId, createdAt])
+  @@index([createdAt])
+}
+
+model WaitlistEntry {
+  id             String   @id @default(cuid())
+  email          String   @unique
+  planPreference String
+  interviewOptIn Boolean  @default(false)
+  updatesConsent Boolean  @default(false)
+  source         String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+}
+
+model SurveyResponse {
+  id              String   @id @default(cuid())
+  /// One response per authenticated user.
+  userId          String   @unique
+  changedPlans    String
+  topFeature      String
+  pricePreference String
+  interviewOptIn  Boolean  @default(false)
+  createdAt       DateTime @default(now())
 }

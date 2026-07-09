@@ -1,9 +1,12 @@
 "use client";
 
+import Link from "next/link";
 import { FormEvent, useMemo, useState } from "react";
 import { motion } from "framer-motion";
 
+import { authClient } from "@/lib/auth-client";
 import { CardIcon } from "@/components/cards/card-icon";
+import { ProPrompt } from "@/components/validation/pro-prompt";
 import { ReadingSynthesis } from "@/components/cards/reading-synthesis";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -11,11 +14,13 @@ import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import { track, trackReadingCompleted } from "@/lib/analytics/client";
+import { CARD_CONTENT_VERSION, getCardContentByName, orientationContent } from "@/lib/card-content";
 import { extractSubject } from "@/lib/context-extract";
 import { ORIENTATION_LABELS } from "@/lib/domain";
 import { guestStore } from "@/lib/guestStore";
-import { interpretDrawnCard } from "@/lib/interpret";
-import { synthesizeReading } from "@/lib/synthesis";
+import { INTERPRETATION_ENGINE_VERSION, interpretDrawnCard } from "@/lib/interpret";
+import { SYNTHESIS_ENGINE_VERSION, synthesizeReading } from "@/lib/synthesis";
 import { BUILDER_TYPES, getProjectStage, PROJECT_STAGES, type BuilderType, type ProjectStageKey } from "@/lib/projectStages";
 import { getProjectStageSpread } from "@/lib/spreads";
 import type { DrawResult } from "@/lib/types";
@@ -36,6 +41,7 @@ const stepLabels: Array<{ key: FlowStep; label: string }> = [
 ];
 
 export default function ProjectStageReadingPage() {
+  const { data: sessionData } = authClient.useSession();
   const [flowStep, setFlowStep] = useState<FlowStep>("stage");
   const [selectedStageKey, setSelectedStageKey] = useState<ProjectStageKey | null>(null);
   const [projectContext, setProjectContext] = useState<ProjectContext>({
@@ -47,6 +53,9 @@ export default function ProjectStageReadingPage() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [copyStatus, setCopyStatus] = useState("");
+  const [saveState, setSaveState] = useState<{ status: "idle" | "saving" | "saved" | "error"; entryId?: string }>({
+    status: "idle",
+  });
 
   const selectedStage = selectedStageKey ? getProjectStage(selectedStageKey) : null;
   const spread = selectedStageKey ? getProjectStageSpread(selectedStageKey) : null;
@@ -117,6 +126,9 @@ export default function ProjectStageReadingPage() {
     setBusy(true);
     setError("");
     setCopyStatus("");
+    setSaveState({ status: "idle" });
+
+    track("project_reading_started", { stage: selectedStageKey, authed: Boolean(sessionData?.user) });
 
     await new Promise((resolve) => setTimeout(resolve, 600));
 
@@ -137,9 +149,101 @@ export default function ProjectStageReadingPage() {
       return;
     }
 
-    setResult((await response.json()) as DrawResult);
+    const drawResult = (await response.json()) as DrawResult;
+    setResult(drawResult);
     setFlowStep("reading");
     setBusy(false);
+
+    // Completed = interpretation successfully displayed; failed requests and
+    // abandoned setup never reach this line. Once-per-draw dedupe by card ids.
+    trackReadingCompleted(
+      `project:${drawResult.cards.map((item) => item.card.id).join("-")}`,
+      "project_reading_completed",
+      {
+        surface: "project-stage",
+        stage: selectedStageKey,
+        authed: Boolean(sessionData?.user),
+        reversedCount: drawResult.cards.filter((item) => item.orientation === "REVERSED").length,
+      },
+    );
+  }
+
+  async function saveReading() {
+    if (!selectedStageKey || !spread || readingCards.length === 0 || saveState.status === "saving") return;
+
+    setSaveState({ status: "saving" });
+
+    const subject = extractSubject({
+      context: projectContext.context,
+      projectName: projectContext.projectName,
+      stage: selectedStageKey,
+    });
+
+    // Snapshot = the exact rendered reading. The raw context paragraph is
+    // deliberately NOT included — only the safely extracted subject.
+    const snapshotCards = readingCards.map((item) => ({
+      cardId: item.card.id,
+      positionName: item.position.label,
+      orientation: item.orientation,
+      interpretationText: item.reading.interpretation,
+      nextActionText: item.reading.nextAction || undefined,
+      reflectionQuestionText: item.reading.reflectionQuestion || undefined,
+      positionRole: item.position.role,
+      cardContentVersion: CARD_CONTENT_VERSION,
+    }));
+    const entrySnapshot = {
+      projectStage: selectedStageKey,
+      subject,
+      synthesisHeadline: synthesis?.synthesis.headline,
+      synthesisSummary: synthesis?.synthesis.summary,
+      synthesisPriorityAction: synthesis?.synthesis.priorityAction,
+      engineVersion: INTERPRETATION_ENGINE_VERSION,
+      synthesisVersion: SYNTHESIS_ENGINE_VERSION,
+    };
+
+    let entryId: string | undefined;
+    if (sessionData?.user) {
+      const response = await fetch("/api/journal", {
+        method: "POST",
+        body: JSON.stringify({
+          spreadType: `project-stage:${selectedStageKey}`,
+          notes: "",
+          cards: snapshotCards,
+          ...entrySnapshot,
+        }),
+      });
+      if (!response.ok) {
+        setSaveState({ status: "error" });
+        return;
+      }
+      entryId = ((await response.json()) as { id?: string }).id;
+    } else {
+      entryId = crypto.randomUUID();
+      guestStore.saveJournal({
+        id: entryId,
+        spreadType: `project-stage:${selectedStageKey}`,
+        notes: "",
+        createdAt: new Date().toISOString(),
+        cards: readingCards.map((item) => ({
+          cardId: item.card.id,
+          cardName: item.card.name,
+          positionName: item.position.label,
+          orientation: item.orientation,
+          interpretationText: item.reading.interpretation,
+          nextActionText: item.reading.nextAction || undefined,
+          reflectionQuestionText: item.reading.reflectionQuestion || undefined,
+        })),
+        ...entrySnapshot,
+      });
+    }
+
+    setSaveState({ status: "saved", entryId });
+    track("journal_entry_saved", {
+      surface: "project-stage",
+      stage: selectedStageKey,
+      authed: Boolean(sessionData?.user),
+      hasSnapshot: true,
+    });
   }
 
   function startOver() {
@@ -148,6 +252,7 @@ export default function ProjectStageReadingPage() {
     setResult(null);
     setError("");
     setCopyStatus("");
+    setSaveState({ status: "idle" });
     setProjectContext({ projectName: "", builderType: "Developer", context: "" });
   }
 
@@ -324,11 +429,39 @@ export default function ProjectStageReadingPage() {
                 <Button type="button" onClick={copyReading}>
                   {copyStatus || "Copy reading"}
                 </Button>
+                <Button type="button" variant="secondary" onClick={() => void saveReading()} disabled={saveState.status === "saving"}>
+                  {saveState.status === "saving" ? "Saving..." : saveState.status === "saved" ? "Saved" : "Save to journal"}
+                </Button>
               </div>
             </div>
+            {saveState.status === "saved" ? (
+              <p className="text-sm text-[#9d98a8]">
+                Reading saved.{" "}
+                <Link href={saveState.entryId ? `/journal/${saveState.entryId}` : "/journal"} className="font-semibold text-[#d0a657] underline">
+                  View it in your journal
+                </Link>
+                .
+              </p>
+            ) : null}
+            {saveState.status === "error" ? (
+              <p className="text-sm font-semibold text-[#e08aa5]">Could not save right now. Try again in a moment.</p>
+            ) : null}
           </Card>
 
           {synthesis ? <ReadingSynthesis synthesis={synthesis.synthesis} /> : null}
+
+          {saveState.status === "saved" ? (
+            <ProPrompt
+              placement="post_save"
+              stage={selectedStageKey}
+              registers={readingCards.map(
+                (item) => {
+                  const content = getCardContentByName(item.card.name);
+                  return content ? orientationContent(content, item.orientation).register : null;
+                },
+              ).filter((register): register is NonNullable<typeof register> => register !== null)}
+            />
+          ) : null}
 
           <div className="grid gap-4 lg:grid-cols-3">
             {readingCards.map((item, index) => (

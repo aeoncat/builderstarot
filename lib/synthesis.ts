@@ -17,6 +17,10 @@ import {
 import { type SpreadSynthesis, renderSpreadSynthesis } from "@/lib/synthesis-render";
 import type { OrientationType } from "@/lib/types";
 
+/** Bump when pattern detection or synthesis rendering changes user-visible
+ *  output. Stamped onto journal snapshots. */
+export const SYNTHESIS_ENGINE_VERSION = 1;
+
 export type SynthesisCardInput = {
   cardId: string;
   name: string;

@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
+import { track, trackReadingCompleted } from "@/lib/analytics/client";
 import { guestStore } from "@/lib/guestStore";
 import type { DrawResult } from "@/lib/types";
 
@@ -30,6 +31,8 @@ export default function DrawPage() {
     setRitual(true);
     setResult(null);
 
+    track("reading_started", { surface: "single", authed: Boolean(sessionData?.user) });
+
     await new Promise((resolve) => setTimeout(resolve, 850));
 
     const response = await fetch("/api/draw", {
@@ -40,15 +43,29 @@ export default function DrawPage() {
         reversedChance: reversedEnabled ? reversedChance : 0,
       }),
     });
+    if (!response.ok) {
+      // Failed requests never count as completed readings.
+      setLoading(false);
+      setRitual(false);
+      return;
+    }
     const data = (await response.json()) as DrawResult & { spreadSessionId?: string | null };
 
     setResult(data);
     setLoading(false);
     setRitual(false);
+
+    trackReadingCompleted(`single:${data.cards.map((item) => item.card.id).join("-")}:${Date.now()}`, "reading_completed", {
+      surface: "single",
+      authed: Boolean(sessionData?.user),
+      reversedCount: data.cards.filter((item) => item.orientation === "REVERSED").length,
+    });
   }
 
   async function saveToJournal() {
     if (!result) return;
+
+    track("journal_entry_saved", { surface: "single", authed: Boolean(sessionData?.user) });
 
     const payload = {
       spreadType: "single",

@@ -5,10 +5,12 @@ import { useEffect, useState } from "react";
 
 import { authClient } from "@/lib/auth-client";
 import { DrawnCard } from "@/components/cards/drawn-card";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Dialog } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
+import { trackOnce } from "@/lib/analytics/client";
 import { guestStore, type GuestJournalEntry } from "@/lib/guestStore";
 import type { JournalEntryDTO } from "@/lib/types";
 
@@ -17,9 +19,17 @@ type EntryState = {
   spreadType: string;
   createdAt: string;
   notes: string;
+  synthesisHeadline?: string | null;
+  synthesisSummary?: string | null;
+  synthesisPriorityAction?: string | null;
   cards: Array<{
     positionName: string;
     orientation: "UPRIGHT" | "REVERSED";
+    // Snapshot text when the entry preserved the exact rendered reading;
+    // entries without snapshots fall back to live engine rendering.
+    interpretationText?: string | null;
+    nextActionText?: string | null;
+    reflectionQuestionText?: string | null;
     card: {
       id: string;
       name: string;
@@ -52,9 +62,15 @@ export default function JournalDetailPage() {
           spreadType: data.spreadType,
           createdAt: data.createdAt,
           notes: data.userNotes,
+          synthesisHeadline: data.synthesisHeadline,
+          synthesisSummary: data.synthesisSummary,
+          synthesisPriorityAction: data.synthesisPriorityAction,
           cards: data.cards.map((item) => ({
             positionName: item.positionName,
             orientation: item.orientation,
+            interpretationText: item.interpretationText,
+            nextActionText: item.nextActionText,
+            reflectionQuestionText: item.reflectionQuestionText,
             card: {
               id: item.card.id,
               name: item.card.name,
@@ -109,6 +125,9 @@ export default function JournalDetailPage() {
         spreadType: guestEntry.spreadType,
         createdAt: guestEntry.createdAt,
         notes: guestEntry.notes,
+        synthesisHeadline: guestEntry.synthesisHeadline,
+        synthesisSummary: guestEntry.synthesisSummary,
+        synthesisPriorityAction: guestEntry.synthesisPriorityAction,
         cards: guestEntry.cards
           .map((item) => {
             const card = allCards.find((candidate) => candidate.id === item.cardId);
@@ -116,6 +135,9 @@ export default function JournalDetailPage() {
             return {
               positionName: item.positionName,
               orientation: item.orientation,
+              interpretationText: item.interpretationText ?? null,
+              nextActionText: item.nextActionText ?? null,
+              reflectionQuestionText: item.reflectionQuestionText ?? null,
               card,
             };
           })
@@ -154,6 +176,15 @@ export default function JournalDetailPage() {
     router.refresh();
   }
 
+  useEffect(() => {
+    if (!entry) return;
+    // "Saved project reading reopened" maps to journal_entry_viewed with
+    // hasSnapshot=true (see docs/validation-plan.md event mapping).
+    trackOnce(`journal-view:${entry.id}`, "journal_entry_viewed", {
+      hasSnapshot: entry.cards.some((item) => Boolean(item.interpretationText)),
+    });
+  }, [entry]);
+
   if (!entry) {
     return <Card className="text-[#9d98a8]">Loading entry...</Card>;
   }
@@ -165,16 +196,53 @@ export default function JournalDetailPage() {
         <h1 className="mt-2 font-display text-4xl font-black capitalize text-[#f1eee7]">{entry.spreadType} Reading</h1>
       </div>
       <p className="text-sm text-[#9d98a8]">{new Date(entry.createdAt).toLocaleString()}</p>
+      {entry.synthesisHeadline && entry.synthesisSummary ? (
+        <Card className="space-y-2 border-[#d0a657]/40">
+          <p className="text-[0.68rem] font-black uppercase tracking-[0.2em] text-[#d0a657]">Reading together</p>
+          <h2 className="font-display text-2xl font-black text-[#f1eee7]">{entry.synthesisHeadline}</h2>
+          <p className="text-sm leading-6 text-[#d5cfda]">{entry.synthesisSummary}</p>
+          {entry.synthesisPriorityAction ? (
+            <div className="rounded-lg border border-[#312a1c] bg-[#1b1710] p-3">
+              <h3 className="text-[0.68rem] font-black uppercase tracking-[0.2em] text-[#d0a657]">Start here</h3>
+              <p className="mt-1 text-sm leading-6 text-[#d5cfda]">{entry.synthesisPriorityAction}</p>
+            </div>
+          ) : null}
+        </Card>
+      ) : null}
       <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
-        {entry.cards.map((item, index) => (
-          <DrawnCard
-            key={`${item.card.id}-${item.positionName}`}
-            card={item.card}
-            orientation={item.orientation}
-            positionName={item.positionName}
-            index={index}
-          />
-        ))}
+        {entry.cards.map((item, index) =>
+          item.interpretationText ? (
+            // Snapshot entry: show the exact reading the user saved.
+            <Card key={`${item.card.id}-${item.positionName}`} className="space-y-3">
+              <div className="flex items-center justify-between gap-2">
+                <Badge>{item.positionName}</Badge>
+                <Badge className={item.orientation === "REVERSED" ? "border-[#6d3144] bg-[#1d1018] text-[#e08aa5]" : ""}>
+                  {item.orientation === "REVERSED" ? "Reversed" : "Upright"}
+                </Badge>
+              </div>
+              <h3 className="font-display text-xl font-black text-[#d0a657]">{item.card.name}</h3>
+              <p className="text-sm leading-6 text-[#d5cfda]">{item.interpretationText}</p>
+              {item.nextActionText ? (
+                <div className="rounded-lg border border-[#312a1c] bg-[#1b1710] p-3">
+                  <h4 className="text-[0.68rem] font-black uppercase tracking-[0.2em] text-[#d0a657]">Next action</h4>
+                  <p className="mt-1 text-sm leading-6 text-[#d5cfda]">{item.nextActionText}</p>
+                </div>
+              ) : null}
+              {item.reflectionQuestionText ? (
+                <p className="text-sm italic leading-6 text-[#9d98a8]">{item.reflectionQuestionText}</p>
+              ) : null}
+            </Card>
+          ) : (
+            // Pre-snapshot entry: fall back to live engine rendering.
+            <DrawnCard
+              key={`${item.card.id}-${item.positionName}`}
+              card={item.card}
+              orientation={item.orientation}
+              positionName={item.positionName}
+              index={index}
+            />
+          ),
+        )}
       </div>
       <Card className="space-y-3">
         <h2 className="font-display font-black text-[#f1eee7]">Notes</h2>

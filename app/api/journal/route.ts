@@ -33,7 +33,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Invalid journal payload" }, { status: 400 });
   }
 
-  const { spreadType, notes, cards, spreadSessionId } = parsed.data;
+  const { spreadType, notes, cards, spreadSessionId, ...snapshot } = parsed.data;
 
   const created = await prisma.journalEntry.create({
     data: {
@@ -41,12 +41,24 @@ export async function POST(request: Request) {
       spreadType,
       userNotes: notes,
       spreadSessionId,
+      projectStage: snapshot.projectStage,
+      subject: snapshot.subject,
+      synthesisHeadline: snapshot.synthesisHeadline,
+      synthesisSummary: snapshot.synthesisSummary,
+      synthesisPriorityAction: snapshot.synthesisPriorityAction,
+      engineVersion: snapshot.engineVersion,
+      synthesisVersion: snapshot.synthesisVersion,
       cards: {
         create: cards.map((item, index) => ({
           cardId: item.cardId,
           orientation: item.orientation,
           positionName: item.positionName,
           sortOrder: index,
+          interpretationText: item.interpretationText,
+          nextActionText: item.nextActionText,
+          reflectionQuestionText: item.reflectionQuestionText,
+          positionRole: item.positionRole,
+          cardContentVersion: item.cardContentVersion,
         })),
       },
     },

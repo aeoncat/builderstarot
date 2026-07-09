@@ -38,12 +38,22 @@ export function serializeJournalEntry(entry: EntryWithCards) {
     createdAt: entry.createdAt,
     updatedAt: entry.updatedAt,
     spreadSessionId: entry.spreadSessionId,
+    // Snapshot fields are nullable; entries saved before snapshots existed
+    // simply return nulls and render through the engine fallback.
+    projectStage: entry.projectStage ?? null,
+    subject: entry.subject ?? null,
+    synthesisHeadline: entry.synthesisHeadline ?? null,
+    synthesisSummary: entry.synthesisSummary ?? null,
+    synthesisPriorityAction: entry.synthesisPriorityAction ?? null,
     cards: entry.cards
       .sort((a, b) => a.sortOrder - b.sortOrder)
       .map((item) => ({
         id: item.id,
         positionName: item.positionName,
         orientation: item.orientation,
+        interpretationText: item.interpretationText ?? null,
+        nextActionText: item.nextActionText ?? null,
+        reflectionQuestionText: item.reflectionQuestionText ?? null,
         card: serializeCard(item.card),
       })),
   };

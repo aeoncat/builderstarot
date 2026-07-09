@@ -1,6 +1,7 @@
 import Link from "next/link";
 
 import { CardIcon } from "@/components/cards/card-icon";
+import { LandingTracker } from "@/components/validation/landing-tracker";
 import { Card } from "@/components/ui/card";
 import { prisma } from "@/lib/prisma";
 import { getServerSession } from "@/lib/serverAuth";
@@ -34,6 +35,7 @@ export default async function HomePage() {
 
   return (
     <div className="space-y-14">
+      <LandingTracker />
       <section className="grid min-h-[calc(100vh-10rem)] items-start gap-10 pt-24 sm:pt-28 lg:grid-cols-[1.05fr_0.95fr]">
         <div>
           <h1 className="max-w-[760px] font-display text-5xl font-black leading-[0.98] tracking-normal text-[#f1eee7] sm:text-6xl lg:text-[4.45rem]">

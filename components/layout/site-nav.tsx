@@ -18,6 +18,7 @@ const navItems = [
   { href: "/spreads", label: "Spreads" },
   { href: "/readings/project-stage", label: "Project" },
   { href: "/journal", label: "Journal" },
+  { href: "/pro", label: "Pro" },
   { href: "/settings", label: "Settings" },
 ];
 
