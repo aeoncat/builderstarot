@@ -22,6 +22,11 @@ const securityHeaders = [
   },
 ];
 
+// Any host that isn't the canonical domain (e.g. the *.vercel.app deployment
+// URL) is permanently redirected here so sessions aren't fragmented across
+// domains. Update if the canonical domain ever changes.
+const CANONICAL_HOST = "www.builderstarot.com";
+
 const nextConfig = {
   poweredByHeader: false,
   async headers() {
@@ -29,6 +34,26 @@ const nextConfig = {
       {
         source: "/:path*",
         headers: securityHeaders,
+      },
+    ];
+  },
+  async redirects() {
+    // Only enforce the canonical host in production so preview deployments
+    // (builderstarot-git-*.vercel.app) stay directly viewable.
+    if (process.env.VERCEL_ENV !== "production") {
+      return [];
+    }
+    return [
+      {
+        source: "/:path*",
+        has: [
+          {
+            type: "host",
+            value: ".*\\.vercel\\.app",
+          },
+        ],
+        destination: `https://${CANONICAL_HOST}/:path*`,
+        permanent: true,
       },
     ];
   },
