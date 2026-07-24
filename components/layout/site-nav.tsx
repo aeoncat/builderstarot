@@ -2,7 +2,8 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { Menu, X } from "lucide-react";
 
 import { authClient } from "@/lib/auth-client";
 import { ThemeToggle } from "@/components/layout/theme-toggle";
@@ -27,6 +28,12 @@ export function SiteNav() {
   const router = useRouter();
   const { data: sessionData } = authClient.useSession();
   const [signingOut, setSigningOut] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
+
+  // Close the mobile menu whenever the route changes.
+  useEffect(() => {
+    setMenuOpen(false);
+  }, [pathname]);
 
   async function handleSignOut() {
     if (signingOut) return;
@@ -47,7 +54,7 @@ export function SiteNav() {
             for builders
           </span>
         </Link>
-        <nav className="hidden items-center gap-0.5 md:flex">
+        <nav className="hidden items-center gap-0.5 xl:flex">
           {navItems.map((item) => (
             <Link
               key={item.href}
@@ -88,22 +95,39 @@ export function SiteNav() {
               </Link>
             </div>
           )}
+          <button
+            type="button"
+            onClick={() => setMenuOpen((open) => !open)}
+            aria-label={menuOpen ? "Close navigation menu" : "Open navigation menu"}
+            aria-expanded={menuOpen}
+            aria-controls="site-nav-menu"
+            className="gold-focus inline-flex h-9 w-9 items-center justify-center rounded-lg border border-[#3d3322] bg-[#17151f] text-[#d5cfda] transition-colors hover:text-[#f1eee7] xl:hidden"
+          >
+            {menuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+          </button>
         </div>
       </div>
-      <nav className="scrollbar-none flex gap-1 overflow-x-auto border-t border-[#211d18] px-4 py-2 md:hidden">
-        {navItems.map((item) => (
-          <Link
-            key={item.href}
-            href={item.href}
-            className={cn(
-              "shrink-0 rounded-md px-3 py-1.5 text-sm font-semibold text-[#9d98a8] transition-colors hover:text-[#e0bc72]",
-              pathname === item.href && "bg-[#17151f] text-[#f1eee7]",
-            )}
-          >
-            {item.label}
-          </Link>
-        ))}
-      </nav>
+      {menuOpen && (
+        <nav
+          id="site-nav-menu"
+          className="border-t border-[#211d18] px-4 py-3 xl:hidden"
+        >
+          <div className="mx-auto grid w-full max-w-[1160px] grid-cols-2 gap-1 sm:grid-cols-3">
+            {navItems.map((item) => (
+              <Link
+                key={item.href}
+                href={item.href}
+                className={cn(
+                  "rounded-md px-3 py-2 text-sm font-semibold text-[#9d98a8] transition-colors hover:text-[#e0bc72]",
+                  pathname === item.href && "bg-[#17151f] text-[#f1eee7]",
+                )}
+              >
+                {item.label}
+              </Link>
+            ))}
+          </div>
+        </nav>
+      )}
     </header>
   );
 }
