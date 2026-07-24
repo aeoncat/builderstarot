@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useState } from "react";
 
 import { authClient } from "@/lib/auth-client";
@@ -22,6 +23,9 @@ export default function DailyPage() {
   const { data: sessionData } = authClient.useSession();
   const [daily, setDaily] = useState<DailyResponse | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
+  const [saveState, setSaveState] = useState<{ status: "idle" | "saving" | "saved" | "error"; entryId?: string }>({
+    status: "idle",
+  });
 
   useEffect(() => {
     async function loadDaily() {
@@ -86,10 +90,12 @@ export default function DailyPage() {
 
   async function saveDailyToJournal() {
     if (!daily) return;
+    setSaveState({ status: "saving" });
     track("journal_entry_saved", { surface: "daily", authed: Boolean(sessionData?.user) });
 
+    let entryId: string | undefined;
     if (sessionData?.user) {
-      await fetch("/api/journal", {
+      const response = await fetch("/api/journal", {
         method: "POST",
         body: JSON.stringify({
           spreadType: "daily",
@@ -103,23 +109,30 @@ export default function DailyPage() {
           ],
         }),
       });
-      return;
+      if (!response.ok) {
+        setSaveState({ status: "error" });
+        return;
+      }
+      entryId = ((await response.json()) as { id?: string }).id;
+    } else {
+      entryId = crypto.randomUUID();
+      guestStore.saveJournal({
+        id: entryId,
+        spreadType: "daily",
+        notes: "",
+        createdAt: new Date().toISOString(),
+        cards: [
+          {
+            cardId: daily.card.id,
+            cardName: daily.card.name,
+            positionName: "Daily Insight",
+            orientation: daily.orientation,
+          },
+        ],
+      });
     }
 
-    guestStore.saveJournal({
-      id: crypto.randomUUID(),
-      spreadType: "daily",
-      notes: "",
-      createdAt: new Date().toISOString(),
-      cards: [
-        {
-          cardId: daily.card.id,
-          cardName: daily.card.name,
-          positionName: "Daily Insight",
-          orientation: daily.orientation,
-        },
-      ],
-    });
+    setSaveState({ status: "saved", entryId });
   }
 
   return (
@@ -135,7 +148,30 @@ export default function DailyPage() {
         <div className="space-y-3">
           <DrawnCard card={daily.card} orientation={daily.orientation} positionName="Daily Insight" index={0} />
           <Card>
-            <Button onClick={saveDailyToJournal}>Save Daily to Journal</Button>
+            <div className="space-y-3">
+              <Button onClick={saveDailyToJournal} disabled={saveState.status === "saving"}>
+                {saveState.status === "saving"
+                  ? "Saving..."
+                  : saveState.status === "saved"
+                    ? "Saved"
+                    : "Save Daily to Journal"}
+              </Button>
+              {saveState.status === "saved" ? (
+                <p className="text-sm text-[#9d98a8]">
+                  Reading saved.{" "}
+                  <Link
+                    href={saveState.entryId ? `/journal/${saveState.entryId}` : "/journal"}
+                    className="font-semibold text-[#d0a657] underline"
+                  >
+                    View it in your journal
+                  </Link>
+                  .
+                </p>
+              ) : null}
+              {saveState.status === "error" ? (
+                <p className="text-sm font-semibold text-[#e08aa5]">Could not save right now. Try again in a moment.</p>
+              ) : null}
+            </div>
           </Card>
         </div>
       ) : (
