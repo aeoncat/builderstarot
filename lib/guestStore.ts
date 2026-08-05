@@ -26,6 +26,9 @@ export type GuestJournalEntry = {
   cards: GuestJournalCard[];
   // Optional entry-level snapshot for project readings.
   projectStage?: string;
+  // Saved project name, kept for a human-readable journal title. Only the name
+  // is stored here — never the raw context paragraph (see subject/extractSubject).
+  projectName?: string;
   subject?: string;
   synthesisHeadline?: string;
   synthesisSummary?: string;

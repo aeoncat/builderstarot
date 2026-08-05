@@ -12,11 +12,14 @@ import { Dialog } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { trackOnce } from "@/lib/analytics/client";
 import { guestStore, type GuestJournalEntry } from "@/lib/guestStore";
+import { formatReadingTitle } from "@/lib/readingTitle";
 import type { JournalEntryDTO } from "@/lib/types";
 
 type EntryState = {
   id: string;
   spreadType: string;
+  projectStage: string | null;
+  projectName: string | null;
   createdAt: string;
   notes: string;
   synthesisHeadline?: string | null;
@@ -60,6 +63,9 @@ export default function JournalDetailPage() {
         setEntry({
           id: data.id,
           spreadType: data.spreadType,
+          projectStage: data.projectStage,
+          // Not persisted server-side; authed entries use the stage-based title.
+          projectName: null,
           createdAt: data.createdAt,
           notes: data.userNotes,
           synthesisHeadline: data.synthesisHeadline,
@@ -123,6 +129,8 @@ export default function JournalDetailPage() {
       setEntry({
         id: guestEntry.id,
         spreadType: guestEntry.spreadType,
+        projectStage: guestEntry.projectStage ?? null,
+        projectName: guestEntry.projectName ?? null,
         createdAt: guestEntry.createdAt,
         notes: guestEntry.notes,
         synthesisHeadline: guestEntry.synthesisHeadline,
@@ -193,7 +201,21 @@ export default function JournalDetailPage() {
     <div className="space-y-6">
       <div>
         <p className="text-[0.68rem] font-black uppercase tracking-[0.2em] text-[#d0a657]">Journal</p>
-        <h1 className="mt-2 font-display text-4xl font-black capitalize text-[#f1eee7]">{entry.spreadType} Reading</h1>
+        {(() => {
+          const { title, label } = formatReadingTitle({
+            spreadType: entry.spreadType,
+            projectStage: entry.projectStage,
+            projectName: entry.projectName,
+          });
+          return (
+            <>
+              <h1 className="mt-2 font-display text-4xl font-black text-[#f1eee7]">{title}</h1>
+              {label ? (
+                <p className="mt-1 text-sm font-black uppercase tracking-[0.16em] text-[#d0a657]">{label}</p>
+              ) : null}
+            </>
+          );
+        })()}
       </div>
       <p className="text-sm text-[#9d98a8]">{new Date(entry.createdAt).toLocaleString()}</p>
       {entry.synthesisHeadline && entry.synthesisSummary ? (

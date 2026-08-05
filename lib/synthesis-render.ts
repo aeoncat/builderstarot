@@ -251,7 +251,7 @@ function summarizeFallback(facts: SpreadCardFact[], subject: string): { text: st
   const walk = facts
     .map((fact) => `${ref(fact)} in ${fact.positionLabel} looks at ${shortJurisdiction(fact)}`)
     .join("; ");
-  const text = `No single pattern dominates this spread, so read it position by position on ${subject}: ${walk}. Hold them side by side rather than forcing one into agreement or conflict with another — the useful reading is in how the positions relate, not in a headline.`;
+  const text = `No single pattern dominates this spread, so read the spread position by position and consider how each speaks to ${subject}: ${walk}. Hold the positions side by side rather than forcing one into agreement or conflict with another — the useful reading is in how they relate, not in a single headline.`;
   return { text, used: facts.map((fact) => fact.index) };
 }
 

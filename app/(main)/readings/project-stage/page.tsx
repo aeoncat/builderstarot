@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { FormEvent, useMemo, useState } from "react";
 import { motion } from "framer-motion";
+import { Compass } from "lucide-react";
 
 import { authClient } from "@/lib/auth-client";
 import { CardIcon } from "@/components/cards/card-icon";
@@ -222,6 +223,8 @@ export default function ProjectStageReadingPage() {
       guestStore.saveJournal({
         id: entryId,
         spreadType: `project-stage:${selectedStageKey}`,
+        // Persisted for a human-readable journal title; empty stays undefined.
+        projectName: projectContext.projectName.trim() || undefined,
         notes: "",
         createdAt: new Date().toISOString(),
         cards: readingCards.map((item) => ({
@@ -448,7 +451,15 @@ export default function ProjectStageReadingPage() {
             ) : null}
           </Card>
 
-          {synthesis ? <ReadingSynthesis synthesis={synthesis.synthesis} /> : null}
+          {/* The practical next action is the payoff — lead with it, above the
+              denser synthesis explanation. */}
+          {synthesis?.synthesis.priorityAction ? (
+            <StartHere action={synthesis.synthesis.priorityAction} />
+          ) : null}
+
+          {synthesis ? (
+            <ReadingSynthesis synthesis={synthesis.synthesis} showPriorityAction={false} />
+          ) : null}
 
           {saveState.status === "saved" ? (
             <ProPrompt
@@ -497,9 +508,20 @@ export default function ProjectStageReadingPage() {
                   </div>
 
                   <ReadingBlock title="Interpretation" body={item.reading.interpretation} />
-                  {item.reading.nextAction ? <ReadingBlock title="Next action" body={item.reading.nextAction} emphasis /> : null}
+                  {item.reading.nextAction ? (
+                    item.reading.nextAction === synthesis?.synthesis.priorityAction ? (
+                      // Already promoted to the "Start here" hero — reference it
+                      // instead of repeating the same action verbatim.
+                      <p className="flex items-center gap-1.5 rounded-lg border border-[#d0a657]/40 bg-[#1b1710] px-3 py-2 text-[0.68rem] font-black uppercase tracking-[0.18em] text-[#d0a657]">
+                        <Compass className="h-3.5 w-3.5 shrink-0" strokeWidth={3} aria-hidden="true" />
+                        Your Start-here move
+                      </p>
+                    ) : (
+                      <ReadingBlock title="Next action" body={item.reading.nextAction} />
+                    )
+                  ) : null}
                   {item.reading.reflectionQuestion ? (
-                    <ReadingBlock title="Sit with this" body={item.reading.reflectionQuestion} />
+                    <ReadingBlock title="Reflect" body={item.reading.reflectionQuestion} />
                   ) : null}
                 </Card>
               </motion.article>
@@ -533,9 +555,35 @@ function ProgressIndicator({ currentStep }: { currentStep: FlowStep }) {
   );
 }
 
-function ReadingBlock({ title, body, emphasis = false }: { title: string; body: string; emphasis?: boolean }) {
+// The single priority action is emphasized once, in the "Start here" hero.
+// Individual card blocks share one calm, scannable treatment so nothing
+// competes with it.
+function StartHere({ action }: { action: string }) {
   return (
-    <div className={cn("rounded-lg border border-[#312a1c] p-3", emphasis ? "bg-[#1b1710]" : "bg-[#0b0a12]/62")}>
+    <motion.section
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.3 }}
+      aria-labelledby="start-here-heading"
+      className="rounded-xl border-2 border-[#d0a657]/70 bg-[#1b1710] p-5 shadow-[0_18px_50px_rgba(0,0,0,0.22)]"
+    >
+      <div className="flex items-center gap-2">
+        <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#d0a657] text-[#090810]">
+          <Compass className="h-5 w-5" strokeWidth={2.5} aria-hidden="true" />
+        </span>
+        <p className="text-[0.68rem] font-black uppercase tracking-[0.24em] text-[#d0a657]">Your next move</p>
+      </div>
+      <h2 id="start-here-heading" className="mt-3 font-display text-2xl font-black text-[#f1eee7]">
+        Start here
+      </h2>
+      <p className="mt-2 text-base leading-7 text-[#f1eee7]">{action}</p>
+    </motion.section>
+  );
+}
+
+function ReadingBlock({ title, body }: { title: string; body: string }) {
+  return (
+    <div className="rounded-lg border border-[#312a1c] bg-[#0b0a12]/62 p-3">
       <h4 className="text-[0.68rem] font-black uppercase tracking-[0.2em] text-[#d0a657]">{title}</h4>
       <p className="mt-2 text-sm leading-6 text-[#d5cfda]">{body}</p>
     </div>
