@@ -3,6 +3,8 @@ import { compare, hash } from "bcryptjs";
 import { betterAuth } from "better-auth";
 
 import { prisma } from "@/lib/prisma";
+import { sendEmail } from "@/lib/email";
+import { buildResetPasswordEmail } from "@/lib/emails/reset-password";
 
 const trustedOrigins = process.env.BETTER_AUTH_TRUSTED_ORIGINS
   ? process.env.BETTER_AUTH_TRUSTED_ORIGINS.split(",").map((origin) => origin.trim()).filter(Boolean)
@@ -25,6 +27,12 @@ export const auth = betterAuth({
     enabled: true,
     minPasswordLength: 8,
     autoSignIn: true,
+    // Reset links stay valid for 1 hour.
+    resetPasswordTokenExpiresIn: 60 * 60,
+    sendResetPassword: async ({ user, url }) => {
+      const { subject, text, html } = buildResetPasswordEmail({ url, userName: user.name });
+      await sendEmail({ to: user.email, subject, text, html });
+    },
     password: {
       hash: async (password) => hash(password, 12),
       verify: async ({ hash: passwordHash, password }) => compare(password, passwordHash),

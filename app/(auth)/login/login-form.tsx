@@ -68,6 +68,11 @@ export function LoginForm() {
           required
         />
         {error ? <p className="text-sm text-rose-600">{error}</p> : null}
+        <div className="text-right">
+          <Link className="text-sm text-[#d0a657] hover:text-[#e0bc72]" href="/forgot-password">
+            Forgot password?
+          </Link>
+        </div>
         <Button type="submit" className="w-full" disabled={busy}>
           {busy ? "Logging in..." : "Log in"}
         </Button>
